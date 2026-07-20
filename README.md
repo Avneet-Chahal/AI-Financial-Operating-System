@@ -11,13 +11,17 @@ Instead of using a single chatbot, AI-FOS employs multiple specialized AI Agents
 Whether you're planning to buy a house, optimize your investments, reduce taxes, or understand how the latest RBI policy affects you, AI-FOS delivers actionable guidance in one place.
 
 ✨ Features
+
 💳 Spending Agent
+
 Categorizes transactions automatically
 Tracks monthly spending patterns
 Detects unnecessary subscriptions
 Predicts future expenses
 Suggests personalized budgeting strategies
+
 📈 Investment Agent
+
 Portfolio analysis
 Stock & ETF insights
 Mutual Fund evaluation
@@ -25,35 +29,48 @@ Asset allocation recommendations
 Risk analysis
 Diversification score
 AI-powered investment suggestions
-🧾 Tax Agent
+
+🧾 Tax Agent 
+
 Tax estimation
 Income tax calculation
 Deduction recommendations
 Tax-saving suggestions
 Capital gains analysis
 Automated tax report generation
+
 🏦 Loan Agent
+
 EMI calculations
 Interest breakdown
 Loan comparison
 Refinancing recommendations
 Loan payoff simulation
 Credit score improvement suggestions
+
 🛡 Fraud Detection Agent
+
 Suspicious transaction detection
 Anomaly detection
 Card misuse monitoring
 Identity theft alerts
 Real-time fraud risk scoring
+
+
 🎯 Goal Planning Agent
 
 Plan for:
 
 🏠 Buying a House
-🚗 Buying a Car
+
+🚗 Buying a Car 
+
 📱 Buying an iPhone
+
 ✈️ Vacation Planning
+
 🎓 Higher Education
+
 👴 Retirement Planning
 
 The AI generates a complete financial roadmap based on:
@@ -65,6 +82,8 @@ Investments
 Inflation
 Risk tolerance
 Financial goals
+
+
 🌍 Economic Intelligence Agent
 
 Continuously analyzes:
@@ -102,6 +121,7 @@ Goal Planning Agent
 and produces a single, personalized recommendation.
 
 🏗 System Architecture
+
                     Frontend
                         │
                 API Gateway
@@ -185,6 +205,8 @@ Machine Learning
 Cloud Deployment
 Microservices Architecture
 Financial Technology (FinTech)
+
+
 🎯 Why This Project?
 
 Traditional finance applications only display numbers.
