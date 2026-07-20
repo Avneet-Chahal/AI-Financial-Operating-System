@@ -201,8 +201,8 @@ Spending Investment Tax    Loan   Fraud   Goals
 
 ```
 ---
+
 # 🧠 AI Capabilities
-```
 
 - Natural Language Understanding
 - Financial Question Answering
@@ -213,45 +213,33 @@ Spending Investment Tax    Loan   Fraud   Goals
 - Personalized Financial Insights
 - Intelligent Goal Planning
 
-  ```
-
 ---
 
 # 🔄 Project Workflow
 
-```
+```text
 User
-
-↓
-
+   │
+   ▼
 Upload Bank Statement
-
-↓
-
-AI Categorizes Transactions
-
-↓
-
+   │
+   ▼
+Transaction Processing
+   │
+   ▼
+AI Expense Categorization
+   │
+   ▼
 Financial Analysis
-
-↓
-
-AI Agents Process Data
-
-↓
-
+   │
+   ▼
+AI Agents
+   │
+   ▼
 AI Orchestrator
-
-↓
-
-Personalized Financial Recommendations
-
-↓
-
-Interactive Dashboard
-```
-
----
+   │
+   ▼
+Dashboard + Personalized Recommendations
 
 # 📊 Future Enhancements
 
