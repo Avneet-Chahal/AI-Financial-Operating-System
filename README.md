@@ -60,7 +60,7 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 | 🎯 **Goal Planning Agent** | Financial Planning | House, Car, Education & Retirement Planning, Personalized Financial Roadmaps |
 | 🌍 **Economic Intelligence Agent** | Market Intelligence | RBI Policy Analysis, Inflation Monitoring, Financial News Analysis, Economic Impact Insights |
 | 🤖 **AI Orchestrator** | Decision Intelligence | Coordinates AI Agents, Aggregates Insights, Generates Personalized Financial Recommendations |
----
+
 
 ---
 
