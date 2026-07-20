@@ -58,7 +58,10 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 
 ## 💳 Spending Agent
 
-- Automatic transaction categorization      - Spending trend analysis     - Subscription detection    - Budget recommendations
+- Automatic transaction categorization
+- Spending trend analysis
+- Subscription detection
+- Budget recommendations
 - Expense forecasting
 
 ---
@@ -108,20 +111,20 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 
 Plan for:
 
-- 🏠 House
 - 🚗 Car
+- 🏠 House
 - 📱 Gadgets
 - ✈️ Vacation
-- 🎓 Higher Education
 - 👴 Retirement
+- 🎓 Higher Education
 
 AI generates a personalized financial roadmap based on:
 
 - Income
-- Expenses
-- Investments
-- Inflation
 - Savings
+- Expenses
+- Inflation
+- Investments
 - Risk Profile
 
 ---
