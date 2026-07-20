@@ -15,45 +15,69 @@ Whether you're planning to buy a house, optimize your investments, reduce taxes,
 💳 Spending Agent
 
 Categorizes transactions automatically
+
 Tracks monthly spending patterns
+
 Detects unnecessary subscriptions
+
 Predicts future expenses
+
 Suggests personalized budgeting strategies
 
 📈 Investment Agent
 
 Portfolio analysis
+
 Stock & ETF insights
+
 Mutual Fund evaluation
+
 Asset allocation recommendations
+
 Risk analysis
+
 Diversification score
+
 AI-powered investment suggestions
 
 🧾 Tax Agent 
 
 Tax estimation
+
 Income tax calculation
-Deduction recommendations
+
+Deduction recommendations 
+
 Tax-saving suggestions
+
 Capital gains analysis
+
 Automated tax report generation
 
 🏦 Loan Agent
 
 EMI calculations
+
 Interest breakdown
+
 Loan comparison
+
 Refinancing recommendations
+
 Loan payoff simulation
+
 Credit score improvement suggestions
 
 🛡 Fraud Detection Agent
 
 Suspicious transaction detection
+
 Anomaly detection
+
 Card misuse monitoring
+
 Identity theft alerts
+
 Real-time fraud risk scoring
 
 
@@ -76,11 +100,17 @@ Plan for:
 The AI generates a complete financial roadmap based on:
 
 Current income
+
 Savings
+
 Expenses
+
 Investments
+
 Inflation
+
 Risk tolerance
+
 Financial goals
 
 
@@ -89,11 +119,17 @@ Financial goals
 Continuously analyzes:
 
 RBI announcements
+
 Federal Reserve decisions
+
 Inflation
+
 Budget updates
+
 Gold prices
+
 Oil prices
+
 Financial news
 
 Then explains:
@@ -113,9 +149,13 @@ Instead of asking each AI separately, users simply ask:
 The Orchestrator gathers insights from:
 
 Spending Agent
+
 Investment Agent
+
 Loan Agent
+
 Tax Agent
+
 Goal Planning Agent
 
 and produces a single, personalized recommendation.
@@ -198,12 +238,19 @@ Audit Logs
 This project aims to demonstrate expertise in:
 
 Artificial Intelligence
+
 Agentic AI Systems
+
 System Design
+
 Backend Development
+
 Machine Learning
+
 Cloud Deployment
+
 Microservices Architecture
+
 Financial Technology (FinTech)
 
 
@@ -214,7 +261,9 @@ Traditional finance applications only display numbers.
 AI Financial Operating System explains:
 
 Why your money is changing
+
 How to improve your finances
+
 What financial decisions you should make next
 
 It transforms financial data into personalized, intelligent, and actionable insights.
