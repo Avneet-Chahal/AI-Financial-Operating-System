@@ -48,94 +48,19 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 
 ---
 
-# 🤖 AI Agents
+## 🤖 AI Agents
 
-### 💳 Spending Agent
-
-- Automatic Transaction Categorization                         • Spending Trend Analysis
-- • Subscription Detection                                     • Budget Recommendations
-- • Expense Forecasting
-
+| AI Agent | Purpose | Core Capabilities |
+|----------|---------|-------------------|
+| 💳 **Spending Agent** | Expense Management | Transaction Categorization, Budget Planning, Spending Analysis, Expense Forecasting |
+| 📈 **Investment Agent** | Wealth Management | Portfolio Analysis, Risk Assessment, Asset Allocation, Investment Recommendations |
+| 🧾 **Tax Agent** | Tax Optimization | Tax Estimation, Deduction Analysis, Tax-Saving Suggestions, Report Generation |
+| 🏦 **Loan Agent** | Debt Management | EMI Calculation, Loan Comparison, Refinancing Analysis, Credit Score Insights |
+| 🛡 **Fraud Detection Agent** | Security | Fraud Detection, Anomaly Detection, Suspicious Transaction Monitoring, Risk Scoring |
+| 🎯 **Goal Planning Agent** | Financial Planning | House, Car, Education & Retirement Planning, Personalized Financial Roadmaps |
+| 🌍 **Economic Intelligence Agent** | Market Intelligence | RBI Policy Analysis, Inflation Monitoring, Financial News Analysis, Economic Impact Insights |
+| 🤖 **AI Orchestrator** | Decision Intelligence | Coordinates AI Agents, Aggregates Insights, Generates Personalized Financial Recommendations |
 ---
-
-## 📈 Investment Agent
-
-- Portfolio analysis
-- Mutual Fund evaluation
-- Stock insights
-- Risk analysis
-- Asset allocation
-- Investment recommendations
-
----
-
-## 🧾 Tax Agent
-
-- Income tax estimation
-- Tax-saving suggestions
-- Deduction recommendations
-- Capital gains analysis
-- Tax report generation
-
----
-
-## 🏦 Loan Agent
-
-- EMI calculator
-- Loan comparison
-- Refinancing suggestions
-- Interest analysis
-- Credit score recommendations
-
----
-
-## 🛡 Fraud Detection Agent
-
-- Suspicious transaction detection
-- Identity theft alerts
-- Card misuse detection
-- Fraud risk scoring
-- Anomaly detection
-
----
-
-## 🎯 Goal Planning Agent
-
-Plan for:
-
-- 🏠 House
-- 🚗 Car
-- 📱 Gadgets
-- ✈️ Vacation
-- 🎓 Higher Education
-- 👴 Retirement
-
-AI generates a personalized financial roadmap based on:
-
-- Income
-- Expenses
-- Investments
-- Inflation
-- Savings
-- Risk Profile
-
----
-
-## 🌍 Economic Intelligence Agent
-
-Tracks
-
-- RBI Policies
-- Federal Reserve Updates
-- Inflation
-- Budget Announcements
-- Gold Prices
-- Oil Prices
-- Financial News
-
-Explains:
-
-> **"How does this affect your finances?"**
 
 ---
 
