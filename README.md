@@ -14,18 +14,13 @@ Whether you're planning to buy a house, optimize investments, reduce taxes, or u
 
 ---
 
-# ❗ Problem Statement
+## ❗ Problem Statement
 
-Managing personal finances requires using multiple applications for:
+People use different applications for budgeting, investments, taxes, loans, and financial planning, making it difficult to understand their overall financial health.
 
-- Expense Tracking
-- Investment Management
-- Tax Planning
-- Loan Management
-- Fraud Detection
-- Financial Goal Planning
+Most finance apps only visualize historical transactions—they do not explain spending behavior, predict future expenses, or provide personalized financial guidance.
 
-Users receive fragmented information instead of a unified financial strategy.
+There is a need for an AI-powered financial operating system that transforms raw financial data into intelligent, actionable, and personalized financial decisions.
 
 ---
 
