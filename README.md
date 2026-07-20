@@ -19,11 +19,11 @@ Whether you're planning to buy a house, optimize investments, reduce taxes, or u
 
 Managing personal finances requires using multiple applications for:
 
-- Expense Tracking
-- Investment Management
 - Tax Planning
+- Expense Tracking
 - Loan Management
 - Fraud Detection
+- Investment Management
 - Financial Goal Planning
 
 Users receive fragmented information instead of a unified financial strategy.
@@ -58,10 +58,7 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 
 ## 💳 Spending Agent
 
-- Automatic transaction categorization
-- Spending trend analysis
-- Subscription detection
-- Budget recommendations
+- Automatic transaction categorization      - Spending trend analysis     - Subscription detection    - Budget recommendations
 - Expense forecasting
 
 ---
