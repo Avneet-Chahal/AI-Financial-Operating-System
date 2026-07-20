@@ -200,7 +200,7 @@ Spending Investment Tax    Loan   Fraud   Goals
 | ☁️ **DevOps**        | Docker, Kubernetes, GitHub Actions, AWS/Azure/GCP                                |
 
 ```
-
+---
 # 🧠 AI Capabilities
 
 - Natural Language Understanding
