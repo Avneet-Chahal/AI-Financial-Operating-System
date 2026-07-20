@@ -4,7 +4,6 @@
 
 ---
 
-
 # 🚀 Overview
 
 AI Financial Operating System (AI-FOS) is a next-generation FinTech platform that transforms traditional personal finance management into an intelligent, AI-driven experience.
@@ -19,11 +18,11 @@ Whether you're planning to buy a house, optimize investments, reduce taxes, or u
 
 Managing personal finances requires using multiple applications for:
 
-- Tax Planning
 - Expense Tracking
+- Investment Management
+- Tax Planning
 - Loan Management
 - Fraud Detection
-- Investment Management
 - Financial Goal Planning
 
 Users receive fragmented information instead of a unified financial strategy.
@@ -111,20 +110,20 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 
 Plan for:
 
-- 🚗 Car
 - 🏠 House
+- 🚗 Car
 - 📱 Gadgets
 - ✈️ Vacation
-- 👴 Retirement
 - 🎓 Higher Education
+- 👴 Retirement
 
 AI generates a personalized financial roadmap based on:
 
 - Income
-- Savings
 - Expenses
-- Inflation
 - Investments
+- Inflation
+- Savings
 - Risk Profile
 
 ---
@@ -188,18 +187,50 @@ Spending Investment Tax    Loan   Fraud   Goals
 
 ---
 
-## 🛠 Tech Stack
+# 🛠 Tech Stack
 
-| Category             | Technologies                                                                     |
-| -------------------- | -------------------------------------------------------------------------------- |
-| 🎨 **Frontend**      | React.js, Next.js, Tailwind CSS, TypeScript                                      |
-| ⚙️ **Backend**       | Spring Boot (Java), REST APIs, JWT Authentication                                |
-| 🤖 **AI & ML**       | Python, Claude/OpenAI, LangChain, Scikit-learn, TensorFlow/PyTorch, XGBoost      |
-| 🗄️ **Database**     | PostgreSQL, MongoDB, Redis                                                       |
-| 🌐 **External APIs** | Stock Market APIs, Mutual Fund APIs, Financial News APIs, Currency Exchange APIs |
-| ☁️ **DevOps**        | Docker, Kubernetes, GitHub Actions, AWS/Azure/GCP                                |
+## Frontend
 
-```
+- React.js
+- Next.js
+- Tailwind CSS
+- TypeScript
+
+## Backend
+
+- Spring Boot (Java)
+- REST APIs
+- JWT Authentication
+
+## AI & Machine Learning
+
+- Python
+- OpenAI API / Claude / Open-source LLMs
+- LangChain
+- Scikit-learn
+- TensorFlow / PyTorch
+- XGBoost
+
+## Database
+
+- PostgreSQL
+- MongoDB
+- Redis
+
+## External APIs
+
+- Stock Market APIs
+- Mutual Fund APIs
+- Financial News APIs
+- Currency Exchange APIs
+
+## DevOps
+
+- Docker
+- Kubernetes
+- GitHub Actions
+- AWS / Azure / GCP
+
 ---
 
 # 🧠 AI Capabilities
@@ -217,29 +248,39 @@ Spending Investment Tax    Loan   Fraud   Goals
 
 # 🔄 Project Workflow
 
-```text
+```
 User
-   │
-   ▼
+
+↓
+
 Upload Bank Statement
-   │
-   ▼
-Transaction Processing
-   │
-   ▼
-AI Expense Categorization
-   │
-   ▼
+
+↓
+
+AI Categorizes Transactions
+
+↓
+
 Financial Analysis
-   │
-   ▼
-AI Agents
-   │
-   ▼
+
+↓
+
+AI Agents Process Data
+
+↓
+
 AI Orchestrator
-   │
-   ▼
-Dashboard + Personalized Recommendations
+
+↓
+
+Personalized Financial Recommendations
+
+↓
+
+Interactive Dashboard
+```
+
+---
 
 # 📊 Future Enhancements
 
