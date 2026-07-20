@@ -187,49 +187,16 @@ Spending Investment Tax    Loan   Fraud   Goals
 
 ---
 
-# 🛠 Tech Stack
+ ## 🛠 Tech Stack
 
-## Frontend
-
-- React.js
-- Next.js
-- Tailwind CSS
-- TypeScript
-
-## Backend
-
-- Spring Boot (Java)
-- REST APIs
-- JWT Authentication
-
-## AI & Machine Learning
-
-- Python
-- OpenAI API / Claude / Open-source LLMs
-- LangChain
-- Scikit-learn
-- TensorFlow / PyTorch
-- XGBoost
-
-## Database
-
-- PostgreSQL
-- MongoDB
-- Redis
-
-## External APIs
-
-- Stock Market APIs
-- Mutual Fund APIs
-- Financial News APIs
-- Currency Exchange APIs
-
-## DevOps
-
-- Docker
-- Kubernetes
-- GitHub Actions
-- AWS / Azure / GCP
+| **Category** | **Technologies** |
+|--------------|------------------|
+| 🎨 **Frontend** | React.js • Next.js • Tailwind CSS • TypeScript |
+| ⚙️ **Backend** | Spring Boot (Java) • REST APIs • JWT Authentication |
+| 🤖 **AI & Machine Learning** | Python • Claude/OpenAI API • LangChain • Scikit-learn • TensorFlow/PyTorch • XGBoost |
+| 🗄️ **Database** | PostgreSQL • MongoDB • Redis |
+| 🌐 **External APIs** | Stock Market APIs • Mutual Fund APIs • Financial News APIs • Currency Exchange APIs |
+| ☁️ **DevOps & Cloud** | Docker • Kubernetes • GitHub Actions • AWS / Azure / GCP |
 
 ---
 
