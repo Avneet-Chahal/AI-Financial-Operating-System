@@ -52,7 +52,9 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 
 ### 💳 Spending Agent
 
-- Automatic Transaction Categorization • Spending Trend Analysis • Subscription Detection • Budget Recommendations • Expense Forecasting
+- Automatic Transaction Categorization                         • Spending Trend Analysis
+- • Subscription Detection                                     • Budget Recommendations
+- • Expense Forecasting
 
 ---
 
