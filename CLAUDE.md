@@ -81,7 +81,8 @@ Spending    Investment       Tax            Loan          Fraud          Goals  
 5. 🛡️ **Fraud Detection Agent**: Transaction security, anomaly detection rules, suspicious activity alerts, and risk scoring.
 6. 🎯 **Goal Planning Agent**: Long-term financial planning (housing, education, retirement) with personalized financial roadmaps.
 7. 🌍 **Economic Intelligence Agent**: Market intelligence, macroeconomic event analysis (e.g., RBI interest rate changes), and news summary.
-8. 🤖 **AI Orchestrator**: Central intelligence that queries sub-agents, resolves conflicting advice, aggregates insights, and outputs plain-language recommendations.
+### 🔗 LangChain Orchestration Layer
+LangChain coordinates all AI agents, enables tool calling, manages conversation memory, performs Retrieval-Augmented Generation (RAG), and integrates Claude to generate accurate, context-aware financial recommendations.
 
 ---
 
