@@ -27,4 +27,6 @@ export interface OrchestratorSummary {
   keyInsights: string[];
   primaryRecommendation: ActionableRecommendation;
   agentStatus: Record<AgentType, 'ACTIVE' | 'IDLE' | 'ERROR'>;
+  /** LangChain tools invoked during this orchestration run */
+  toolsInvoked?: AgentType[];
 }

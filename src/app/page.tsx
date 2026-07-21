@@ -7,20 +7,34 @@ import CategoryBreakdown from '@/components/dashboard/CategoryBreakdown';
 import MonthlyTrend from '@/components/dashboard/MonthlyTrend';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 
-import { 
-  mockUser, 
-  mockOrchestratorSummary, 
-  mockSpendingSummary,
-  mockMonthlyTrend,
-  mockTransactions
-} from '@/lib/mockData';
+import { runOrchestrator } from '@/lib/langchain-orchestrator';
+import { analyzeBudget, getCategorizedTransactions } from '@/lib/spending-agent';
+import { mockUser, mockMonthlyTrend } from '@/lib/mockData';
 
-export default function DashboardPage() {
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
-    day: 'numeric' 
+/**
+ * Dashboard — server component.
+ * Fetches live data from the LangChain Orchestrator and Spending Agent at render time.
+ * mockData is only used for user profile and monthly trend (static seed).
+ */
+export default async function DashboardPage() {
+  // Run agents in parallel
+  const [orchestratorSummary, transactions] = await Promise.all([
+    runOrchestrator(mockUser.id),
+    Promise.resolve(getCategorizedTransactions()),
+  ]);
+
+  const spendingSummary = analyzeBudget(transactions);
+
+  const currentDate = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
   });
+
+  // Compute a simple health score based on budget used + savings rate
+  const budgetUsedPct = spendingSummary.totalSpent / spendingSummary.monthlyBudget;
+  const savingsRate = 1 - budgetUsedPct;
+  const healthScore = Math.min(100, Math.round(50 + savingsRate * 50 + (savingsRate > 0.3 ? 10 : 0)));
 
   return (
     <div className="space-y-6 pb-12">
@@ -33,26 +47,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 1: AI Orchestrator */}
-      <OrchestratorWidget summary={mockOrchestratorSummary} />
+      {/* Row 1: LangChain AI Orchestrator */}
+      <OrchestratorWidget summary={orchestratorSummary} />
 
       {/* Row 2: Quick Stats Grid */}
-      <QuickStats user={mockUser} summary={mockSpendingSummary} />
+      <QuickStats user={mockUser} summary={spendingSummary} />
 
       {/* Row 3: Health Score & Spending Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <FinancialHealthScore score={88} />
+          <FinancialHealthScore score={healthScore} />
         </div>
         <div className="lg:col-span-2">
-          <SpendingOverview user={mockUser} summary={mockSpendingSummary} />
+          <SpendingOverview user={mockUser} summary={spendingSummary} />
         </div>
       </div>
 
       {/* Row 4: Categories & Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CategoryBreakdown summary={mockSpendingSummary} />
-        <RecentTransactions transactions={mockTransactions} />
+        <CategoryBreakdown summary={spendingSummary} />
+        <RecentTransactions transactions={transactions} />
       </div>
 
       {/* Row 5: Monthly Trend */}

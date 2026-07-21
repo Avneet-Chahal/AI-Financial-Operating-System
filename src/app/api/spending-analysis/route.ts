@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { mockSpendingSummary } from '@/lib/mockData';
+import { analyzeBudget, getCategorizedTransactions } from '@/lib/spending-agent';
 
 export async function GET() {
-  return NextResponse.json(mockSpendingSummary);
+  const transactions = getCategorizedTransactions();
+  const summary = analyzeBudget(transactions);
+  return NextResponse.json(summary);
 }

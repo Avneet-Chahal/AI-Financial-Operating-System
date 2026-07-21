@@ -26,8 +26,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { label: 'Dashboard', path: '/', icon: LayoutDashboard, status: 'active', version: 'v1' },
     { label: 'Expenses', path: '/expenses', icon: CreditCard, status: 'active', version: 'v1' },
     { label: 'AI Summary', path: '/ai-summary', icon: Bot, status: 'active', version: 'v1' },
-    { label: 'Investments', path: '/investments', icon: TrendingUp, status: 'upcoming', version: 'v2' },
-    { label: 'Taxes', path: '/taxes', icon: Receipt, status: 'upcoming', version: 'v2' },
+    { label: 'Investments', path: '/investments', icon: TrendingUp, status: 'active', version: 'v2' },
+    { label: 'Taxes', path: '/taxes', icon: Receipt, status: 'active', version: 'v2' },
   ];
 
   return (
