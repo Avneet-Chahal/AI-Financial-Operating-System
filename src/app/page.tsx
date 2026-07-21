@@ -1,25 +1,64 @@
 import React from 'react';
-import NetWorthCard from '@/components/dashboard/NetWorthCard';
-import SpendingSummaryCard from '@/components/dashboard/SpendingSummaryCard';
 import OrchestratorWidget from '@/components/dashboard/OrchestratorWidget';
+import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
+import SpendingOverview from '@/components/dashboard/SpendingOverview';
+import QuickStats from '@/components/dashboard/QuickStats';
+import CategoryBreakdown from '@/components/dashboard/CategoryBreakdown';
+import MonthlyTrend from '@/components/dashboard/MonthlyTrend';
+import RecentTransactions from '@/components/dashboard/RecentTransactions';
 
-/**
- * Route: / (Unified Dashboard - v1 MUST)
- */
+import { 
+  mockUser, 
+  mockOrchestratorSummary, 
+  mockSpendingSummary,
+  mockMonthlyTrend,
+  mockTransactions
+} from '@/lib/mockData';
+
 export default function DashboardPage() {
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100">Financial Dashboard</h1>
-        <p className="text-sm text-slate-400">Unified overview powered by AI-FOS agents.</p>
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 animate-fade-in">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-100">
+            Good morning, {mockUser.name.split(' ')[0]}
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">Here is your financial briefing for {currentDate}.</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <NetWorthCard />
-        <SpendingSummaryCard />
+      {/* Row 1: AI Orchestrator */}
+      <OrchestratorWidget summary={mockOrchestratorSummary} />
+
+      {/* Row 2: Quick Stats Grid */}
+      <QuickStats user={mockUser} summary={mockSpendingSummary} />
+
+      {/* Row 3: Health Score & Spending Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <FinancialHealthScore score={88} />
+        </div>
+        <div className="lg:col-span-2">
+          <SpendingOverview user={mockUser} summary={mockSpendingSummary} />
+        </div>
       </div>
 
-      <OrchestratorWidget />
+      {/* Row 4: Categories & Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CategoryBreakdown summary={mockSpendingSummary} />
+        <RecentTransactions transactions={mockTransactions} />
+      </div>
+
+      {/* Row 5: Monthly Trend */}
+      <div className="w-full">
+        <MonthlyTrend data={mockMonthlyTrend} />
+      </div>
     </div>
   );
 }

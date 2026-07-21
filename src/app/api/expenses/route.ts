@@ -1,45 +1,26 @@
 import { NextResponse } from 'next/server';
-import { Transaction } from '@/types';
+import { mockTransactions } from '@/lib/mockData';
+import { Category } from '@/types';
 
-/**
- * Placeholder API Route for Expense Tracking (Spending Agent)
- */
-export async function GET() {
-  const sampleTransactions: Transaction[] = [
-    {
-      id: 'tx_1',
-      userId: 'user_123',
-      amount: 4500,
-      category: 'FOOD_DINING',
-      description: 'Dinner at Olive Bistro',
-      merchant: 'Olive Bistro',
-      date: '2026-07-18',
-      isRecurring: false,
-      aiCategorized: true
-    },
-    {
-      id: 'tx_2',
-      userId: 'user_123',
-      amount: 25000,
-      category: 'HOUSING',
-      description: 'Monthly Apartment Rent',
-      merchant: 'Landlord Transfer',
-      date: '2026-07-01',
-      isRecurring: true,
-      aiCategorized: true
-    },
-    {
-      id: 'tx_3',
-      userId: 'user_123',
-      amount: 1200,
-      category: 'TRANSPORTATION',
-      description: 'Uber Ride to Airport',
-      merchant: 'Uber',
-      date: '2026-07-15',
-      isRecurring: false,
-      aiCategorized: true
-    }
-  ];
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const category = searchParams.get('category') as Category | null;
+  
+  let transactions = [...mockTransactions];
+  
+  if (category) {
+    transactions = transactions.filter(tx => tx.category === category);
+  }
+  
+  return NextResponse.json({ transactions });
+}
 
-  return NextResponse.json({ transactions: sampleTransactions });
+export async function POST(request: Request) {
+  const data = await request.json();
+  // In a real app, save to database
+  
+  return NextResponse.json({ 
+    success: true, 
+    transaction: data 
+  }, { status: 201 });
 }

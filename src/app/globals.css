@@ -5,10 +5,50 @@
 :root {
   --background: #0f172a;
   --foreground: #f8fafc;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --border: #334155;
+  --accent-primary: #10b981; /* emerald-500 */
+  --accent-secondary: #0ea5e9; /* sky-500 */
+  --accent-warning: #f59e0b; /* amber-500 */
+  --accent-danger: #ef4444; /* red-500 */
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Glassmorphism Utilities */
+@layer utilities {
+  .glass {
+    @apply bg-slate-900/60 backdrop-blur-md border border-slate-800/50;
+  }
+  .glass-card {
+    @apply bg-slate-900/80 backdrop-blur-sm border border-slate-800 shadow-xl;
+  }
+  .glass-sidebar {
+    @apply bg-slate-950/80 backdrop-blur-lg border-r border-slate-800;
+  }
+  .gradient-border-ai {
+    @apply relative before:absolute before:inset-0 before:-z-10 before:p-[1px] before:bg-gradient-to-r before:from-indigo-500 before:via-purple-500 before:to-pink-500 before:rounded-[inherit] before:content-[''] before:[mask:linear-gradient(#fff_0_0)_content-box,_linear-gradient(#fff_0_0)] before:[mask-composite:exclude];
+  }
 }
