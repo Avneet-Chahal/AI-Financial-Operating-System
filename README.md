@@ -59,29 +59,29 @@ The AI analyzes spending behavior, predicts future expenses, detects fraud, eval
 | 🛡 **Fraud Detection Agent** | Security | Fraud Detection, Anomaly Detection, Suspicious Transaction Monitoring, Risk Scoring |
 | 🎯 **Goal Planning Agent** | Financial Planning | House, Car, Education & Retirement Planning, Personalized Financial Roadmaps |
 | 🌍 **Economic Intelligence Agent** | Market Intelligence | RBI Policy Analysis, Inflation Monitoring, Financial News Analysis, Economic Impact Insights |
-| 🤖 **AI Orchestrator** | Decision Intelligence | Coordinates AI Agents, Aggregates Insights, Generates Personalized Financial Recommendations |
+| 🔗 **LangChain Orchestration** | Agent Coordination | Multi-Agent Workflow, Tool Calling, Conversation Memory, RAG Pipeline, Claude Integration |
 
 
 ---
 
-## 🤖 AI Orchestrator
+## 🔗 LangChain Orchestration
 
-The AI Orchestrator coordinates all AI agents.
+LangChain serves as the orchestration layer that coordinates all AI agents, manages tool execution, maintains conversation memory, performs Retrieval-Augmented Generation (RAG), and integrates Claude to deliver unified, context-aware financial recommendations.
 
-Example:
+**Example:**
 
-> **"Can I afford a ₹25 lakh car next year?"**
+> "Can I afford a ₹25 lakh car next year?"
 
-Instead of querying multiple services individually, the Orchestrator collects insights from:
+Instead of querying each service manually, LangChain orchestrates:
 
-- Spending Agent
-- Investment Agent
-- Loan Agent
-- Tax Agent
-- Goal Planning Agent
+- 💳 Spending Agent
+- 📈 Investment Agent
+- 🏦 Loan Agent
+- 🧾 Tax Agent
+- 🎯 Goal Planning Agent
+- 🌍 Economic Intelligence Agent
 
-Then generates one personalized recommendation.
-
+Finally, it combines insights from all agents and generates a single personalized financial recommendation using Claude.
 ---
 
 # 🏗️ System Architecture
