@@ -1,37 +1,45 @@
 /**
  * LangChain Orchestration Layer — Core Logic (MUST tier)
  *
- * This module simulates the LangChain multi-agent orchestration pipeline in TypeScript.
- * In production this would be a Python/LangChain microservice; here it mirrors the same
- * architecture: tool calling, context assembly (RAG), conversation memory, and synthesis.
+ * Coordinates the specialized agents over the user's REAL data and synthesizes a
+ * plain-language briefing with Claude (via LangChain).
  *
  * Pipeline:
- *   1. TOOL CALLING   — invoke each agent as a discrete "tool"
+ *   1. TOOL CALLING   — invoke each agent as a discrete "tool" over the user's data
  *   2. CONTEXT (RAG)  — assemble a structured financial context object
- *   3. MEMORY         — cache last summary for follow-up questions
- *   4. SYNTHESIS      — generate plain-language overview + ranked recommendations
+ *   3. MEMORY + CACHE — Redis: cache the latest summary (60s) + keep conversation memory
+ *   4. SYNTHESIS      — Claude generates the overview + ranked recommendations
+ *                       (deterministic fallback when no API key is configured)
  *   5. OUTPUT         — return a typed OrchestratorSummary
  */
 
-import type { OrchestratorSummary, AgentType, ActionableRecommendation } from '@/types';
-import { analyzeBudget, getCategorizedTransactions } from './spending-agent';
-import { analyzeInvestments } from './investment-agent';
-import { estimateTax } from './tax-agent';
+import type {
+  OrchestratorSummary,
+  AgentType,
+  ActionableRecommendation,
+  SpendingSummary,
+  TaxEstimation,
+} from '@/types';
+import { analyzeBudget } from './spending-agent';
+import { analyzeInvestments, type InvestmentAnalysis } from './investment-agent';
+import { estimateTax, deriveTaxInput } from './tax-agent';
+import { getUserProfile, getUserTransactions, deriveMonthlyBudget } from './data';
+import { cache } from './redis';
+import { isLlmConfigured, synthesizeFinancialSummary } from './llm';
 
-// ─── Memory Store (in-memory; Redis-ready interface) ─────────────────────────
+// ─── Redis keys ───────────────────────────────────────────────────────────────
 
-interface MemoryEntry {
-  timestamp: string;
-  summary: OrchestratorSummary;
+const summaryKey = (userId: string) => `orchestrator:summary:${userId}`;
+const memoryKey = (userId: string) => `orchestrator:memory:${userId}`;
+const SUMMARY_TTL_SECONDS = 60;
+const MEMORY_CAP = 20;
+
+/** Clear a user's cached summary (e.g. after new data is uploaded). */
+export async function clearMemory(userId: string): Promise<void> {
+  await cache.setJSON(summaryKey(userId), null, 1);
 }
 
-let _memory: MemoryEntry | null = null;
-
-export function clearMemory(): void {
-  _memory = null;
-}
-
-// ─── Tool Definitions (LangChain-style) ──────────────────────────────────────
+// ─── Tool definitions (LangChain-style) ───────────────────────────────────────
 
 interface AgentToolResult {
   agentName: AgentType;
@@ -40,49 +48,45 @@ interface AgentToolResult {
   data: Record<string, any>;
 }
 
-async function invokeSpendingTool(): Promise<AgentToolResult> {
-  try {
-    const transactions = getCategorizedTransactions();
-    const summary = analyzeBudget(transactions);
-    return { agentName: 'SPENDING', status: 'ACTIVE', data: { summary, transactionCount: transactions.length } };
-  } catch {
-    return { agentName: 'SPENDING', status: 'ERROR', data: {} };
-  }
-}
-
-async function invokeInvestmentTool(): Promise<AgentToolResult> {
-  try {
-    const analysis = analyzeInvestments();
-    return { agentName: 'INVESTMENT', status: 'ACTIVE', data: { analysis } };
-  } catch {
-    return { agentName: 'INVESTMENT', status: 'ERROR', data: {} };
-  }
-}
-
-async function invokeTaxTool(): Promise<AgentToolResult> {
-  try {
-    const estimation = estimateTax();
-    return { agentName: 'TAX', status: 'ACTIVE', data: { estimation } };
-  } catch {
-    return { agentName: 'TAX', status: 'ERROR', data: {} };
-  }
-}
-
-// ─── RAG Context Assembly ─────────────────────────────────────────────────────
-
 interface FinancialContext {
   spending: AgentToolResult;
   investment: AgentToolResult;
   tax: AgentToolResult;
 }
 
-async function assembleContext(): Promise<{ context: FinancialContext; toolsInvoked: AgentType[] }> {
-  // Run all tools in parallel (LangChain parallel tool calling)
-  const [spending, investment, tax] = await Promise.all([
-    invokeSpendingTool(),
-    invokeInvestmentTool(),
-    invokeTaxTool(),
+async function assembleContext(
+  userId: string
+): Promise<{ context: FinancialContext; toolsInvoked: AgentType[] }> {
+  const [profile, transactions] = await Promise.all([
+    getUserProfile(userId),
+    getUserTransactions(userId),
   ]);
+
+  const spending: AgentToolResult = (() => {
+    try {
+      const summary = analyzeBudget(transactions, deriveMonthlyBudget(profile));
+      return { agentName: 'SPENDING', status: 'ACTIVE', data: { summary, transactionCount: transactions.length } };
+    } catch {
+      return { agentName: 'SPENDING', status: 'ERROR', data: {} };
+    }
+  })();
+
+  const investment: AgentToolResult = (() => {
+    try {
+      return { agentName: 'INVESTMENT', status: 'ACTIVE', data: { analysis: analyzeInvestments() } };
+    } catch {
+      return { agentName: 'INVESTMENT', status: 'ERROR', data: {} };
+    }
+  })();
+
+  const tax: AgentToolResult = (() => {
+    try {
+      const estimation = estimateTax(deriveTaxInput(profile, transactions));
+      return { agentName: 'TAX', status: 'ACTIVE', data: { estimation } };
+    } catch {
+      return { agentName: 'TAX', status: 'ERROR', data: {} };
+    }
+  })();
 
   const toolsInvoked: AgentType[] = [spending, investment, tax]
     .filter((t) => t.status === 'ACTIVE')
@@ -91,9 +95,48 @@ async function assembleContext(): Promise<{ context: FinancialContext; toolsInvo
   return { context: { spending, investment, tax }, toolsInvoked };
 }
 
-// ─── Synthesis (LangChain prompt → structured output) ─────────────────────────
+// ─── RAG context → prompt text ────────────────────────────────────────────────
 
-function synthesize(context: FinancialContext): {
+function buildContextText(context: FinancialContext): string {
+  const lines: string[] = [];
+
+  if (context.spending.status === 'ACTIVE') {
+    const { summary } = context.spending.data as { summary: SpendingSummary };
+    const pct = summary.monthlyBudget > 0 ? Math.round((summary.totalSpent / summary.monthlyBudget) * 100) : 0;
+    lines.push(
+      `SPENDING: Spent ₹${summary.totalSpent.toLocaleString('en-IN')} of a ₹${summary.monthlyBudget.toLocaleString('en-IN')} monthly budget (${pct}%).`,
+      `Top category: ${summary.topCategory.replace('_', ' ')} at ₹${summary.categoryBreakdown[summary.topCategory].toLocaleString('en-IN')}.`,
+      `Next-month forecast: ₹${summary.forecastedNextMonth.toLocaleString('en-IN')}.`,
+      `Category breakdown: ${Object.entries(summary.categoryBreakdown)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k.replace('_', ' ')} ₹${v.toLocaleString('en-IN')}`)
+        .join(', ')}.`
+    );
+  }
+
+  if (context.investment.status === 'ACTIVE') {
+    const { analysis } = context.investment.data as { analysis: InvestmentAnalysis };
+    lines.push(
+      `INVESTMENT: Portfolio ₹${analysis.portfolio.totalValue.toLocaleString('en-IN')}, unrealised gains ₹${analysis.portfolio.unrealizedGains.toLocaleString('en-IN')} (${analysis.annualizedReturn}%). Risk: ${analysis.riskLabel}.`,
+      `Tax-saving headroom: ${analysis.taxSavingHeadroom
+        .map((t) => `${t.section} ₹${t.remaining.toLocaleString('en-IN')} remaining (saves ~₹${t.estimatedTaxSaving.toLocaleString('en-IN')})`)
+        .join('; ')}.`
+    );
+  }
+
+  if (context.tax.status === 'ACTIVE') {
+    const { estimation } = context.tax.data as { estimation: TaxEstimation };
+    lines.push(
+      `TAX: Old regime ₹${estimation.estimatedTaxOldRegime.toLocaleString('en-IN')}, new regime ₹${estimation.estimatedTaxNewRegime.toLocaleString('en-IN')}. Recommended: ${estimation.recommendedRegime}.`
+    );
+  }
+
+  return lines.join('\n');
+}
+
+// ─── Deterministic synthesis (fallback when no LLM configured) ─────────────────
+
+function synthesizeDeterministic(context: FinancialContext): {
   overview: string;
   insights: string[];
   recommendations: ActionableRecommendation[];
@@ -101,18 +144,15 @@ function synthesize(context: FinancialContext): {
   const insights: string[] = [];
   const recommendations: ActionableRecommendation[] = [];
 
-  // ── Spending insights ──
   if (context.spending.status === 'ACTIVE') {
-    const { summary } = context.spending.data as { summary: import('@/types').SpendingSummary };
-    const budgetUsedPct = Math.round((summary.totalSpent / summary.monthlyBudget) * 100);
-
+    const { summary } = context.spending.data as { summary: SpendingSummary };
+    const budgetUsedPct = summary.monthlyBudget > 0 ? Math.round((summary.totalSpent / summary.monthlyBudget) * 100) : 0;
     insights.push(
       `You've spent ₹${summary.totalSpent.toLocaleString('en-IN')} this month — ${budgetUsedPct}% of your ₹${summary.monthlyBudget.toLocaleString('en-IN')} budget.`
     );
     insights.push(
       `Largest expense category: ${summary.topCategory.replace('_', ' ')} at ₹${summary.categoryBreakdown[summary.topCategory].toLocaleString('en-IN')}.`
     );
-
     if (summary.forecastedNextMonth > summary.monthlyBudget) {
       const overrun = summary.forecastedNextMonth - summary.monthlyBudget;
       recommendations.push({
@@ -125,13 +165,11 @@ function synthesize(context: FinancialContext): {
     }
   }
 
-  // ── Investment insights ──
   if (context.investment.status === 'ACTIVE') {
-    const { analysis } = context.investment.data as { analysis: import('./investment-agent').InvestmentAnalysis };
+    const { analysis } = context.investment.data as { analysis: InvestmentAnalysis };
     insights.push(
       `Your portfolio is worth ₹${analysis.portfolio.totalValue.toLocaleString('en-IN')} with unrealised gains of ₹${analysis.portfolio.unrealizedGains.toLocaleString('en-IN')} (+${analysis.annualizedReturn}%).`
     );
-
     const top80C = analysis.taxSavingHeadroom.find((t) => t.section === '80C');
     if (top80C && top80C.remaining > 0) {
       recommendations.push({
@@ -142,7 +180,6 @@ function synthesize(context: FinancialContext): {
         sourceAgent: 'INVESTMENT',
       });
     }
-
     const nps = analysis.taxSavingHeadroom.find((t) => t.section === '80CCD');
     if (nps && nps.remaining > 0) {
       recommendations.push({
@@ -155,48 +192,61 @@ function synthesize(context: FinancialContext): {
     }
   }
 
-  // ── Tax insights ──
   if (context.tax.status === 'ACTIVE') {
-    const { estimation } = context.tax.data as { estimation: import('@/types').TaxEstimation };
+    const { estimation } = context.tax.data as { estimation: TaxEstimation };
     const saving = Math.abs(estimation.estimatedTaxOldRegime - estimation.estimatedTaxNewRegime);
     insights.push(
       `The ${estimation.recommendedRegime} tax regime saves you ₹${saving.toLocaleString('en-IN')} vs the other option.`
     );
   }
 
-  // ── Plain-language overview ──
   const budgetUsed = context.spending.status === 'ACTIVE'
-    ? Math.round(
-        ((context.spending.data as { summary: import('@/types').SpendingSummary }).summary.totalSpent /
-          (context.spending.data as { summary: import('@/types').SpendingSummary }).summary.monthlyBudget) *
-          100
-      )
+    ? (() => {
+        const s = (context.spending.data as { summary: SpendingSummary }).summary;
+        return s.monthlyBudget > 0 ? Math.round((s.totalSpent / s.monthlyBudget) * 100) : 0;
+      })()
+    : 0;
+  const portfolioValue = context.investment.status === 'ACTIVE'
+    ? (context.investment.data as { analysis: InvestmentAnalysis }).analysis.portfolio.totalValue
     : 0;
 
-  const portfolioValue = context.investment.status === 'ACTIVE'
-    ? (context.investment.data as { analysis: import('./investment-agent').InvestmentAnalysis }).analysis.portfolio.totalValue
-    : 0;
+  recommendations.sort((a, b) => b.impactScore - a.impactScore);
 
   const overview =
     `You've used ${budgetUsed}% of your monthly budget and your portfolio stands at ₹${portfolioValue.toLocaleString('en-IN')}. ` +
     `${recommendations.length > 0 ? `Top priority action: ${recommendations[0].title}.` : 'Your finances are on track — great work!'}`;
 
-  // Sort recommendations by impact score desc
-  recommendations.sort((a, b) => b.impactScore - a.impactScore);
-
   return { overview, insights, recommendations };
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+// ─── Public API ────────────────────────────────────────────────────────────────
 
-export async function runOrchestrator(userId: string = 'user_123'): Promise<OrchestratorSummary> {
-  // Return cached summary if generated within last 60 seconds
-  if (_memory && Date.now() - new Date(_memory.timestamp).getTime() < 60_000) {
-    return _memory.summary;
+export async function runOrchestrator(userId: string): Promise<OrchestratorSummary> {
+  // 1. Redis summary cache (per user, short TTL).
+  const cached = await cache.getJSON<OrchestratorSummary>(summaryKey(userId));
+  if (cached) return cached;
+
+  // 2. Tool calling + RAG context over the user's real data.
+  const { context, toolsInvoked } = await assembleContext(userId);
+
+  // 3. Synthesis — Claude if configured, deterministic otherwise.
+  let overview: string;
+  let insights: string[];
+  let recommendations: ActionableRecommendation[];
+
+  if (isLlmConfigured()) {
+    try {
+      const result = await synthesizeFinancialSummary(buildContextText(context));
+      overview = result.overview;
+      insights = result.insights;
+      recommendations = result.recommendations;
+    } catch (err) {
+      console.error('[orchestrator] LLM synthesis failed, using deterministic fallback:', err);
+      ({ overview, insights, recommendations } = synthesizeDeterministic(context));
+    }
+  } else {
+    ({ overview, insights, recommendations } = synthesizeDeterministic(context));
   }
-
-  const { context, toolsInvoked } = await assembleContext();
-  const { overview, insights, recommendations } = synthesize(context);
 
   const agentStatus: OrchestratorSummary['agentStatus'] = {
     SPENDING: context.spending.status,
@@ -225,6 +275,15 @@ export async function runOrchestrator(userId: string = 'user_123'): Promise<Orch
     toolsInvoked,
   };
 
-  _memory = { timestamp: result.timestamp, summary: result };
+  // 4. Persist to Redis: cache this summary + append to conversation memory.
+  await Promise.all([
+    cache.setJSON(summaryKey(userId), result, SUMMARY_TTL_SECONDS),
+    cache.pushHistory(
+      memoryKey(userId),
+      { timestamp: result.timestamp, overview: result.plainLanguageOverview },
+      MEMORY_CAP
+    ),
+  ]);
+
   return result;
 }

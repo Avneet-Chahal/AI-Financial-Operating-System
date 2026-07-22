@@ -35,35 +35,21 @@ export function categorizeTransaction(description: string, merchant: string): Ca
   return 'MISCELLANEOUS';
 }
 
-// ─── Seed Data ───────────────────────────────────────────────────────────────
-
-export function getCategorizedTransactions(): Transaction[] {
-  const raw: Omit<Transaction, 'category' | 'aiCategorized'>[] = [
-    { id: 'tx_1', userId: 'user_123', amount: 25000, description: 'Monthly Apartment Rent', merchant: 'Landlord Transfer', date: '2026-07-01', isRecurring: true },
-    { id: 'tx_2', userId: 'user_123', amount: 1200, description: 'Swiggy Order', merchant: 'Swiggy', date: '2026-07-06', isRecurring: false },
-    { id: 'tx_3', userId: 'user_123', amount: 4500, description: 'Dinner at Olive Bistro', merchant: 'Olive Bistro', date: '2026-07-08', isRecurring: false },
-    { id: 'tx_4', userId: 'user_123', amount: 800,  description: 'Uber Ride to Office', merchant: 'Uber', date: '2026-07-10', isRecurring: false },
-    { id: 'tx_5', userId: 'user_123', amount: 3500, description: 'BESCOM Electricity Bill', merchant: 'BESCOM', date: '2026-07-05', isRecurring: true },
-    { id: 'tx_6', userId: 'user_123', amount: 5500, description: 'Monthly Groceries', merchant: 'BigBasket', date: '2026-07-12', isRecurring: false },
-    { id: 'tx_7', userId: 'user_123', amount: 10000, description: 'Mutual Fund SIP — Axis Bluechip', merchant: 'Zerodha', date: '2026-07-15', isRecurring: true },
-    { id: 'tx_8', userId: 'user_123', amount: 1500, description: 'Netflix Subscription', merchant: 'Netflix', date: '2026-07-15', isRecurring: true },
-    { id: 'tx_9', userId: 'user_123', amount: 999,  description: 'Airtel Postpaid Bill', merchant: 'Airtel', date: '2026-07-16', isRecurring: true },
-    { id: 'tx_10', userId: 'user_123', amount: 950, description: 'Zomato Order', merchant: 'Zomato', date: '2026-07-18', isRecurring: false },
-    { id: 'tx_11', userId: 'user_123', amount: 2200, description: 'Rapido Bike Rides', merchant: 'Rapido', date: '2026-07-19', isRecurring: false },
-    { id: 'tx_12', userId: 'user_123', amount: 1800, description: 'BookMyShow — Movie tickets', merchant: 'BookMyShow', date: '2026-07-20', isRecurring: false },
-  ];
-
-  return raw.map((tx) => ({
-    ...tx,
-    category: categorizeTransaction(tx.description, tx.merchant),
-    aiCategorized: true,
-  }));
-}
-
 // ─── Budget Analysis ─────────────────────────────────────────────────────────
 
-export function analyzeBudget(transactions: Transaction[]): SpendingSummary {
-  const MONTHLY_BUDGET = 65000;
+const DEFAULT_MONTHLY_BUDGET = 65000;
+
+/**
+ * Analyze a user's transactions into a SpendingSummary.
+ * @param transactions  The user's own transactions (loaded from the database).
+ * @param monthlyBudget Optional personalized budget; defaults to a sensible value
+ *                      so the UI still renders for accounts without an income set.
+ */
+export function analyzeBudget(
+  transactions: Transaction[],
+  monthlyBudget: number = DEFAULT_MONTHLY_BUDGET
+): SpendingSummary {
+  const MONTHLY_BUDGET = monthlyBudget > 0 ? monthlyBudget : DEFAULT_MONTHLY_BUDGET;
 
   // Category breakdown
   const breakdown = Object.keys(CATEGORY_RULES).reduce((acc, cat) => {

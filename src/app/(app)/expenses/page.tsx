@@ -47,8 +47,25 @@ export default function ExpensesPage() {
       ? transactions
       : transactions.filter((tx) => tx.category === activeCategory);
 
-  const handleAddTransaction = (newTx: Transaction) => {
-    setTransactions((prev) => [newTx, ...prev]);
+  const handleAddTransaction = async (newTx: Partial<Transaction>) => {
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTx),
+      });
+      if (!res.ok) return;
+      const { transaction } = (await res.json()) as { transaction: Transaction };
+      setTransactions((prev) => [transaction, ...prev]);
+      // Refresh the summary so stats/insights reflect the new transaction.
+      const summaryRes = await fetch('/api/expenses');
+      if (summaryRes.ok) {
+        const data: ExpensesResponse = await summaryRes.json();
+        setSummary(data.summary);
+      }
+    } catch {
+      /* surfaced by the modal staying open would be nicer; kept minimal here */
+    }
   };
 
   if (loading) {

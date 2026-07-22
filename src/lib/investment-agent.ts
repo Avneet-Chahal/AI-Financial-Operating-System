@@ -109,8 +109,12 @@ function computeTaxSavingOpportunities(holdings: Holding[]): TaxSavingOpportunit
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export function analyzeInvestments(): InvestmentAnalysis {
-  const holdings = getSeedHoldings();
+/**
+ * Analyze a portfolio. Holdings are optional: brokerage/holdings sync is a future
+ * (COULD-tier) integration, so we default to a representative seed portfolio. Once
+ * a holdings source exists, callers pass real holdings and everything downstream works.
+ */
+export function analyzeInvestments(holdings: Holding[] = getSeedHoldings()): InvestmentAnalysis {
 
   const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
   const totalInvested = holdings.reduce((s, h) => s + h.investedAmount, 0);

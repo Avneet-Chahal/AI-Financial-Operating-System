@@ -1,0 +1,141 @@
+/**
+ * LLM layer — real Claude (Anthropic) access via LangChain.
+ *
+ * Uses @langchain/anthropic's ChatAnthropic with structured output (tool-forced
+ * JSON) so the orchestrator and the PDF extractor get typed results instead of
+ * free-text they'd have to parse. All prompts include the user's real financial
+ * data. If ANTHROPIC_API_KEY is not configured, isLlmConfigured() is false and
+ * callers fall back to their deterministic paths.
+ */
+import { ChatAnthropic } from '@langchain/anthropic';
+import { z } from 'zod';
+import type { ActionableRecommendation, AgentType } from '@/types';
+
+export function isLlmConfigured(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY);
+}
+
+function getChatModel(): ChatAnthropic {
+  return new ChatAnthropic({
+    model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-8',
+    // Anthropic key is read from ANTHROPIC_API_KEY by the SDK.
+    maxTokens: 2048,
+    temperature: 0,
+  });
+}
+
+// ─── Orchestrator synthesis ───────────────────────────────────────────────────
+
+const SOURCE_AGENTS = ['SPENDING', 'INVESTMENT', 'TAX'] as const;
+
+const synthesisSchema = z.object({
+  overview: z
+    .string()
+    .describe('A 2-3 sentence plain-language financial briefing for the user. No jargon.'),
+  insights: z
+    .array(z.string())
+    .describe('3-5 short, specific insights grounded in the numbers provided.'),
+  recommendations: z
+    .array(
+      z.object({
+        title: z.string().describe('Short imperative action, e.g. "Max out Section 80C".'),
+        description: z.string().describe('One or two sentences explaining the action and its benefit.'),
+        impactScore: z.number().min(1).max(10).describe('Priority/financial impact, 1-10.'),
+        sourceAgent: z.enum(SOURCE_AGENTS).describe('Which agent this recommendation comes from.'),
+      })
+    )
+    .describe('Ranked next steps, most impactful first.'),
+});
+
+export interface SynthesisResult {
+  overview: string;
+  insights: string[];
+  recommendations: ActionableRecommendation[];
+}
+
+const SYSTEM_PROMPT = `You are the AI Orchestrator for a personal finance platform (AI-FOS).
+You receive structured output from specialized agents (Spending, Investment, Tax) computed from the user's REAL transactions and profile.
+Write a warm, plain-language briefing a salaried professional can act on immediately.
+Rules:
+- Use only the numbers provided; never invent figures.
+- Currency is Indian Rupees (₹). Keep it concrete and specific.
+- No hedging, no disclaimers, no meta-commentary about being an AI.
+- Respond ONLY via the structured tool; do not add extra prose.`;
+
+/**
+ * Generate the orchestrator briefing from assembled agent context.
+ * `contextText` is a compact, human-readable dump of each agent's numbers.
+ */
+export async function synthesizeFinancialSummary(contextText: string): Promise<SynthesisResult> {
+  const model = getChatModel().withStructuredOutput(synthesisSchema, {
+    name: 'financial_briefing',
+  });
+
+  const result = await model.invoke([
+    { role: 'system', content: SYSTEM_PROMPT },
+    {
+      role: 'user',
+      content: `Here is the user's current financial context:\n\n${contextText}\n\nProduce the briefing.`,
+    },
+  ]);
+
+  const recommendations: ActionableRecommendation[] = result.recommendations.map((r, i) => ({
+    id: `rec_llm_${i + 1}`,
+    title: r.title,
+    description: r.description,
+    impactScore: r.impactScore,
+    sourceAgent: r.sourceAgent as AgentType,
+  }));
+
+  return { overview: result.overview, insights: result.insights, recommendations };
+}
+
+// ─── PDF statement extraction ─────────────────────────────────────────────────
+
+const extractionSchema = z.object({
+  transactions: z.array(
+    z.object({
+      date: z.string().describe('Transaction date in YYYY-MM-DD format.'),
+      description: z.string().describe('Narration / description of the transaction.'),
+      merchant: z.string().describe('Best guess at the merchant or counterparty name.'),
+      amount: z.number().describe('Amount of money SPENT (a debit), as a positive number in rupees.'),
+      isRecurring: z.boolean().describe('True if this looks like a recurring payment (rent, subscription, EMI, bill).'),
+    })
+  ),
+});
+
+export interface ExtractedStatementRow {
+  date: string;
+  description: string;
+  merchant: string;
+  amount: number;
+  isRecurring: boolean;
+}
+
+/**
+ * Use Claude to extract debit transactions from raw bank-statement text
+ * (used for PDFs, whose layout the heuristic parser can't reliably handle).
+ * Only money-out (debit) rows are returned; deposits/credits are excluded.
+ */
+export async function extractTransactionsFromStatement(
+  statementText: string
+): Promise<ExtractedStatementRow[]> {
+  const model = getChatModel().withStructuredOutput(extractionSchema, {
+    name: 'extract_transactions',
+  });
+
+  // Guard against oversized inputs blowing the context / cost.
+  const clipped = statementText.slice(0, 40_000);
+
+  const result = await model.invoke([
+    {
+      role: 'system',
+      content: `You extract transactions from Indian bank statement text.
+Return ONLY debits (money spent / withdrawals). Exclude credits, deposits, salary, refunds, and opening/closing balances.
+Dates must be YYYY-MM-DD. Amounts are positive rupee numbers. If nothing qualifies, return an empty list.`,
+    },
+    { role: 'user', content: `Bank statement text:\n\n${clipped}` },
+  ]);
+
+  return result.transactions;
+}

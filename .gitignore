@@ -6,3 +6,11 @@ dist
 *.tsbuildinfo
 .DS_Store
 *.log
+
+# Secrets & local env
+.env
+.env.local
+.env*.local
+
+# Prisma generated client (regenerated via `prisma generate`)
+src/generated

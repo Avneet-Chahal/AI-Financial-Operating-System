@@ -1,16 +1,25 @@
 import React from 'react';
-import { estimateTax } from '@/lib/tax-agent';
+import { redirect } from 'next/navigation';
+import { estimateTax, deriveTaxInput } from '@/lib/tax-agent';
 import RegimeComparison from '@/components/taxes/RegimeComparison';
 import DeductionTracker from '@/components/taxes/DeductionTracker';
 import TaxSummaryCard from '@/components/taxes/TaxSummaryCard';
 import { FileText } from 'lucide-react';
+import { getCurrentUserId, getUserProfile, getUserTransactions } from '@/lib/data';
 
 /**
  * Route: /taxes — Tax Agent (SHOULD tier)
- * Server component: fetches live data from tax agent at render time.
+ * Server component: estimates tax from the signed-in user's real profile + transactions.
  */
-export default function TaxesPage() {
-  const estimation = estimateTax();
+export default async function TaxesPage() {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect('/login');
+
+  const [profile, transactions] = await Promise.all([
+    getUserProfile(userId),
+    getUserTransactions(userId),
+  ]);
+  const estimation = estimateTax(deriveTaxInput(profile, transactions));
 
   return (
     <div className="space-y-6 pb-20">

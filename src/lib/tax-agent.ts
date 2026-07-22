@@ -9,7 +9,7 @@
  * Consumed by the LangChain Orchestration Layer.
  */
 
-import type { TaxEstimation, TaxDeduction } from '@/types';
+import type { TaxEstimation, TaxDeduction, Transaction, UserProfile } from '@/types';
 
 // ─── Tax Slabs ───────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ function calcNewRegimeTax(taxableIncome: number): number {
 
 // ─── Seed Input ──────────────────────────────────────────────────────────────
 
-interface TaxInput {
+export interface TaxInput {
   annualGrossIncome: number;
   hraReceived: number;
   rentPaid: number;
@@ -40,14 +40,48 @@ interface TaxInput {
   sec80CCD_nps: number;      // NPS additional
 }
 
-function getSeedTaxInput(): TaxInput {
+const DEFAULT_TAX_INPUT: TaxInput = {
+  annualGrossIncome: 85000 * 12,
+  hraReceived: 20000 * 12,
+  rentPaid: 25000 * 12,
+  sec80C_invested: 110000,
+  sec80D_premium: 18000,
+  sec80CCD_nps: 0,
+};
+
+/**
+ * Derive tax inputs from the user's real profile + transactions.
+ *
+ * - Annual gross income comes from the profile's monthly income.
+ * - Housing spend (rent) and 80C investment amounts are inferred from the user's
+ *   own transactions: recurring rows are annualized (×12), one-offs counted once.
+ * - HRA / 80D use conservative estimates derived from income (no dedicated inputs
+ *   exist yet); these are transparent approximations, not authoritative filings.
+ */
+export function deriveTaxInput(
+  profile: UserProfile | null,
+  transactions: Transaction[]
+): TaxInput {
+  if (!profile || profile.monthlyIncome <= 0) return DEFAULT_TAX_INPUT;
+
+  const annualGrossIncome = profile.monthlyIncome * 12;
+
+  const annualize = (txs: Transaction[]) =>
+    txs.reduce((sum, tx) => sum + (tx.isRecurring ? tx.amount * 12 : tx.amount), 0);
+
+  const rentPaid = annualize(transactions.filter((t) => t.category === 'HOUSING'));
+  const sec80C_invested = Math.min(
+    150000,
+    annualize(transactions.filter((t) => t.category === 'INVESTMENTS'))
+  );
+
   return {
-    annualGrossIncome: 85000 * 12,  // ₹10.2L annual
-    hraReceived: 20000 * 12,        // ₹2.4L HRA component
-    rentPaid: 25000 * 12,           // ₹3L rent paid
-    sec80C_invested: 110000,        // Already invested (ELSS + PPF)
-    sec80D_premium: 18000,          // Health insurance premium
-    sec80CCD_nps: 0,                // No NPS yet
+    annualGrossIncome,
+    hraReceived: Math.round(annualGrossIncome * 0.24), // ~24% HRA component assumption
+    rentPaid,
+    sec80C_invested,
+    sec80D_premium: 18000,
+    sec80CCD_nps: 0,
   };
 }
 
@@ -100,8 +134,7 @@ function computeDeductions(input: TaxInput): TaxDeduction[] {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export function estimateTax(): TaxEstimation {
-  const input = getSeedTaxInput();
+export function estimateTax(input: TaxInput = DEFAULT_TAX_INPUT): TaxEstimation {
   const deductions = computeDeductions(input);
 
   // Old regime: apply all deductions
