@@ -64,28 +64,48 @@ function nowMs(): number {
 class RedisBackend implements CacheBackend {
   constructor(private client: Redis) {}
 
+  // The cache is best-effort: it accelerates responses but is never the source of
+  // truth. A Redis outage (connection closed, timeout, etc.) must therefore never
+  // propagate out of these methods and crash request handling — reads degrade to a
+  // miss (null / []) and writes degrade to a no-op. This is the contract callers
+  // rely on (see file header); enforce it here rather than at every call site.
+  private safe<T>(op: string, fallback: T, fn: () => Promise<T>): Promise<T> {
+    return fn().catch((err) => {
+      console.error(`[redis] ${op} failed, degrading to fallback:`, (err as Error).message);
+      return fallback;
+    });
+  }
+
   async getJSON<T>(key: string): Promise<T | null> {
-    const raw = await this.client.get(key);
-    return raw ? (JSON.parse(raw) as T) : null;
+    return this.safe(`get ${key}`, null, async () => {
+      const raw = await this.client.get(key);
+      return raw ? (JSON.parse(raw) as T) : null;
+    });
   }
 
   async setJSON(key: string, value: Json, ttlSeconds?: number): Promise<void> {
-    const raw = JSON.stringify(value);
-    if (ttlSeconds) await this.client.set(key, raw, 'EX', ttlSeconds);
-    else await this.client.set(key, raw);
+    return this.safe(`set ${key}`, undefined, async () => {
+      const raw = JSON.stringify(value);
+      if (ttlSeconds) await this.client.set(key, raw, 'EX', ttlSeconds);
+      else await this.client.set(key, raw);
+    });
   }
 
   async pushHistory(key: string, value: Json, cap: number): Promise<void> {
-    await this.client
-      .multi()
-      .lpush(key, JSON.stringify(value))
-      .ltrim(key, 0, cap - 1)
-      .exec();
+    return this.safe(`pushHistory ${key}`, undefined, async () => {
+      await this.client
+        .multi()
+        .lpush(key, JSON.stringify(value))
+        .ltrim(key, 0, cap - 1)
+        .exec();
+    });
   }
 
   async getHistory<T>(key: string, limit: number): Promise<T[]> {
-    const items = await this.client.lrange(key, 0, limit - 1);
-    return items.map((s) => JSON.parse(s) as T);
+    return this.safe(`getHistory ${key}`, [], async () => {
+      const items = await this.client.lrange(key, 0, limit - 1);
+      return items.map((s) => JSON.parse(s) as T);
+    });
   }
 }
 

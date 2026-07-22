@@ -18,21 +18,51 @@ export default function StatementUpload() {
 
   async function upload(file: File) {
     setStatus({ kind: 'uploading', fileName: file.name });
+
+    let res: Response;
     try {
       const body = new FormData();
       body.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body });
-      const data = await res.json();
-      if (!res.ok) {
-        setStatus({ kind: 'error', message: data.error ?? 'Upload failed.' });
-        return;
-      }
-      setStatus({ kind: 'success', imported: data.imported, source: data.source });
-      // Refresh server components so the dashboard repopulates with new data.
-      router.refresh();
+      res = await fetch('/api/upload', { method: 'POST', body });
     } catch {
-      setStatus({ kind: 'error', message: 'Network error. Please try again.' });
+      // Only a genuine transport-level failure (offline, DNS, connection reset)
+      // lands here — the server never responded.
+      setStatus({ kind: 'error', message: 'Could not reach the server. Check your connection and try again.' });
+      return;
     }
+
+    // Parse defensively: an unhandled server error can return a non-JSON body,
+    // which must surface as a meaningful message rather than a parse crash.
+    const raw = await res.text();
+    let data: { error?: string; imported?: number; source?: string } = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      /* non-JSON body (e.g. HTML error page) — fall through to status-based message */
+    }
+
+    if (!res.ok) {
+      const fallback =
+        res.status === 401
+          ? 'Your session expired. Please sign in again.'
+          : res.status === 413
+          ? 'That file is too large (max 10 MB).'
+          : res.status === 415
+          ? 'Unsupported file type. Upload a .csv or .pdf.'
+          : res.status >= 500
+          ? 'The server hit an error importing your statement. Please try again.'
+          : 'Upload failed. Please try again.';
+      setStatus({ kind: 'error', message: data.error ?? fallback });
+      return;
+    }
+
+    setStatus({
+      kind: 'success',
+      imported: data.imported ?? 0,
+      source: data.source ?? 'file',
+    });
+    // Refresh server components so the dashboard repopulates with new data.
+    router.refresh();
   }
 
   function onFiles(files: FileList | null) {

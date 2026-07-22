@@ -74,22 +74,37 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = await prisma.transaction.createMany({
-    data: parsed.map((tx) => ({
-      userId,
-      amount: tx.amount,
-      category: tx.category,
-      description: tx.description,
-      merchant: tx.merchant,
-      date: new Date(tx.date),
-      isRecurring: tx.isRecurring,
-      aiCategorized: true,
-      source: isCsv ? 'CSV' : 'PDF',
-    })),
-  });
+  let created: { count: number };
+  try {
+    created = await prisma.transaction.createMany({
+      data: parsed.map((tx) => ({
+        userId,
+        amount: tx.amount,
+        category: tx.category,
+        description: tx.description,
+        merchant: tx.merchant,
+        date: new Date(tx.date),
+        isRecurring: tx.isRecurring,
+        aiCategorized: true,
+        source: isCsv ? 'CSV' : 'PDF',
+      })),
+    });
+  } catch (err) {
+    console.error('[api/upload] failed to save transactions:', err);
+    return NextResponse.json(
+      { error: 'Could not save the imported transactions. Please try again.' },
+      { status: 500 }
+    );
+  }
 
-  // New data invalidates the cached AI briefing.
-  await clearMemory(userId);
+  // New data invalidates the cached AI briefing. This is best-effort: the import
+  // already succeeded, so a cache/Redis hiccup must never turn a good upload into
+  // an error. (The cache layer degrades on its own, but we guard here too.)
+  try {
+    await clearMemory(userId);
+  } catch (err) {
+    console.error('[api/upload] cache invalidation failed (non-fatal):', err);
+  }
 
   return NextResponse.json(
     { success: true, imported: created.count, source: isCsv ? 'CSV' : 'PDF' },

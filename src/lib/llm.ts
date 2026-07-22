@@ -20,7 +20,9 @@ function getChatModel(): ChatAnthropic {
     model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-8',
     // Anthropic key is read from ANTHROPIC_API_KEY by the SDK.
     maxTokens: 2048,
-    temperature: 0,
+    // NB: do NOT set a custom temperature. Some models (e.g. claude-opus-4-8)
+    // reject any non-default temperature and the SDK throws before the call is
+    // made. Omitting it uses the model default, which is what we want here.
   });
 }
 
