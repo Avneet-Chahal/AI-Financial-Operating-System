@@ -14,3 +14,4 @@ dist
 
 # Prisma generated client (regenerated via `prisma generate`)
 src/generated
+*.db
