@@ -1,11 +1,17 @@
+'use client';
+
 import React from 'react';
-import { Menu, Search, Bell, User } from 'lucide-react';
+import { Menu, Search, Bell, User, LogOut } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 
 interface NavbarProps {
   onMenuToggle: () => void;
 }
 
 export default function Navbar({ onMenuToggle }: NavbarProps) {
+  const { data: session } = useSession();
+  const displayName = session?.user?.name ?? session?.user?.email ?? 'Account';
+  const initial = displayName.charAt(0).toUpperCase();
   return (
     <header className="h-16 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md px-4 md:px-6 flex items-center justify-between z-20 shrink-0">
       <div className="flex items-center space-x-3">
@@ -49,14 +55,27 @@ export default function Navbar({ onMenuToggle }: NavbarProps) {
         
         <div className="h-8 w-px bg-slate-800 mx-1 hidden sm:block"></div>
         
-        <div className="flex items-center gap-3 cursor-pointer group">
+        <div className="flex items-center gap-3 group">
           <div className="text-right hidden md:block">
-            <div className="text-sm font-medium text-slate-200 group-hover:text-emerald-400 transition-colors">Priya Sharma</div>
+            <div className="text-sm font-medium text-slate-200 group-hover:text-emerald-400 transition-colors">
+              {displayName}
+            </div>
             <div className="text-xs text-slate-500">Free Tier</div>
           </div>
           <div className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg ring-2 ring-transparent group-hover:ring-emerald-500/50 transition-all">
-            <User className="w-5 h-5 text-white" />
+            {session?.user ? (
+              <span className="text-sm font-bold text-white">{initial}</span>
+            ) : (
+              <User className="w-5 h-5 text-white" />
+            )}
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            title="Sign out"
+            className="p-2 text-slate-400 hover:text-red-400 transition-colors rounded-full hover:bg-slate-800/50"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </header>

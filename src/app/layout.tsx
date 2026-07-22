@@ -1,6 +1,6 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
-import AppShell from '@/components/layout/AppShell';
+import AuthSessionProvider from '@/components/providers/SessionProvider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -17,7 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased overflow-hidden">
-        <AppShell>{children}</AppShell>
+        {/* AppShell now lives in the (app) route group so auth pages render without it. */}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
     </html>
   );

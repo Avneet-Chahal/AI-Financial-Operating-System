@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aifos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aifos
+      POSTGRES_PASSWORD: aifos_local_dev
+      POSTGRES_DB: aifos
+    ports:
+      - "5432:5432"
+    volumes:
+      - aifos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aifos -d aifos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aifos-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - aifos_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  aifos_pgdata:
+  aifos_redisdata:
