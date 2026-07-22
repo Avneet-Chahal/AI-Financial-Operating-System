@@ -10,6 +10,7 @@ import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import StatementUpload from '@/components/dashboard/StatementUpload';
 
 import { runOrchestrator } from '@/lib/langchain-orchestrator';
+import { isLlmConfigured } from '@/lib/llm';
 import { analyzeBudget } from '@/lib/spending-agent';
 import {
   getCurrentUserId,
@@ -46,9 +47,10 @@ export default async function DashboardPage() {
 
   const spendingSummary = analyzeBudget(transactions, deriveMonthlyBudget(profile));
   const hasData = transactions.length > 0;
+  const aiAvailable = isLlmConfigured();
 
-  // Only run the (LLM-backed) orchestrator when there's data to summarize.
-  const orchestratorSummary = hasData ? await runOrchestrator(userId) : null;
+  // Run the (Claude-backed) orchestrator only when there's data AND a real key.
+  const orchestratorSummary = hasData && aiAvailable ? await runOrchestrator(userId) : null;
 
   const currentDate = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
@@ -91,7 +93,25 @@ export default async function DashboardPage() {
       ) : (
         <>
           {/* Row 1: LangChain AI Orchestrator */}
-          {orchestratorSummary && <OrchestratorWidget summary={orchestratorSummary} />}
+          {orchestratorSummary ? (
+            <OrchestratorWidget summary={orchestratorSummary} />
+          ) : !aiAvailable ? (
+            <div className="glass-card gradient-border-ai rounded-2xl p-6 animate-slide-up">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                  <span className="text-lg">🤖</span>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-slate-100">AI Orchestrator is offline</h3>
+                  <p className="text-sm text-slate-400 mt-1 max-w-2xl break-words">
+                    Set <code className="text-emerald-400 bg-slate-900/70 px-1.5 py-0.5 rounded">ANTHROPIC_API_KEY</code> in
+                    your environment to enable the LangChain orchestrator and generate a live plain-language
+                    briefing from your real transactions. Your dashboard metrics below are fully functional without it.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* Row 2: Quick Stats Grid */}
           <QuickStats user={user} summary={spendingSummary} />

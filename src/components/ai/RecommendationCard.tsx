@@ -1,8 +1,11 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { OrchestratorSummary } from '@/types';
 import { Zap, ChevronRight, CheckCircle2 } from 'lucide-react';
 
 export default function RecommendationCard({ recommendation }: { recommendation: OrchestratorSummary['primaryRecommendation'] }) {
+  const [actionTaken, setActionTaken] = useState(false);
   return (
     <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/30 rounded-2xl p-6 md:p-8 relative overflow-hidden animate-slide-up shadow-xl shadow-amber-500/5">
       {/* Glow effect */}
@@ -32,9 +35,25 @@ export default function RecommendationCard({ recommendation }: { recommendation:
         </div>
         
         <div className="shrink-0">
-          <button className="w-full md:w-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 group hover:scale-105 active:scale-95">
-            Take Action
-            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          <button 
+            onClick={() => {
+              setActionTaken(true);
+              setTimeout(() => setActionTaken(false), 3000);
+            }}
+            className={`w-full md:w-auto font-bold py-3 px-8 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 group hover:scale-105 active:scale-95 ${
+              actionTaken
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-emerald-500/25'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/25'
+            }`}
+          >
+            {actionTaken ? (
+              <>Action Scheduled ✓</>
+            ) : (
+              <>
+                Take Action
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </div>
       </div>

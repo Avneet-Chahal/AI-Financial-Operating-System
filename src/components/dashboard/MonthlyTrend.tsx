@@ -9,17 +9,59 @@ interface TrendData {
 }
 
 export default function MonthlyTrend({ data }: { data: TrendData[] }) {
+  const [timeframe, setTimeframe] = useState<'1W' | '1M' | '3M' | '6M'>('6M');
   const [show, setShow] = useState(false);
-  const maxAmount = Math.max(...data.map(d => d.amount)) * 1.1; // 10% headroom
+
+  const displayData = React.useMemo(() => {
+    if (timeframe === '1W') {
+      return [
+        { month: 'Mon', amount: 1200 },
+        { month: 'Tue', amount: 800 },
+        { month: 'Wed', amount: 2100 },
+        { month: 'Thu', amount: 400 },
+        { month: 'Fri', amount: 3200 },
+        { month: 'Sat', amount: 1500 },
+        { month: 'Sun', amount: 900 },
+      ];
+    }
+    if (timeframe === '1M') {
+      return [
+        { month: 'Week 1', amount: 8500 },
+        { month: 'Week 2', amount: 12000 },
+        { month: 'Week 3', amount: 9200 },
+        { month: 'Week 4', amount: 11500 },
+      ];
+    }
+    if (timeframe === '3M') {
+      return data.slice(-3);
+    }
+    return data;
+  }, [timeframe, data]);
+
+  const maxAmount = Math.max(...displayData.map(d => d.amount)) * 1.1; // 10% headroom
 
   useEffect(() => {
-    const timer = setTimeout(() => setShow(true), 300);
+    setShow(false);
+    const timer = setTimeout(() => setShow(true), 50);
     return () => clearTimeout(timer);
-  }, []);
+  }, [timeframe]);
 
   return (
     <div className="glass-card p-5 rounded-2xl h-full animate-fade-in" style={{ animationDelay: '250ms' }}>
-      <h3 className="text-sm font-medium text-slate-400 mb-6">6-Month Spending Trend</h3>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-sm font-medium text-slate-400">Spending Trend</h3>
+        <div className="flex bg-slate-900/50 rounded-lg p-1 border border-slate-700/50">
+          {(['1W', '1M', '3M', '6M'] as const).map(tf => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`text-xs px-2.5 py-1 rounded-md transition-colors ${timeframe === tf ? 'bg-slate-700 text-slate-200' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
+      </div>
       
       <div className="h-48 flex items-end justify-between gap-2 relative">
         {/* Y-axis guidelines */}
@@ -30,9 +72,9 @@ export default function MonthlyTrend({ data }: { data: TrendData[] }) {
           <div className="border-t border-slate-600 w-full"></div>
         </div>
 
-        {data.map((item, index) => {
+        {displayData.map((item, index) => {
           const heightPercent = (item.amount / maxAmount) * 100;
-          const isLast = index === data.length - 1;
+          const isLast = index === displayData.length - 1;
           
           return (
             <div key={item.month} className="flex-1 flex flex-col items-center group relative z-10">

@@ -1,0 +1,62 @@
+# Render Blueprint for AI-FOS.
+# Provisions a managed PostgreSQL database, a managed Redis (key-value) instance,
+# and (optionally) the full Next.js app as a Render Web Service.
+#
+# Two supported topologies:
+#   A) Frontend+API on Vercel, data on Render  -> use ONLY the `databases` +
+#      `services: type: redis` blocks below, and point Vercel's DATABASE_URL /
+#      REDIS_URL at the connection strings Render shows after the first deploy.
+#   B) Everything on Render                     -> keep the `web` service too.
+#
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+# Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: aifos-postgres
+    databaseName: aifos
+    user: aifos
+    plan: free
+    region: singapore
+
+services:
+  # ─── Managed Redis (orchestrator cache + conversation memory) ────────────────
+  - type: redis
+    name: aifos-redis
+    plan: free
+    region: singapore
+    ipAllowList: []            # only reachable from Render services
+
+  # ─── Next.js app (frontend + API routes). Omit this block for topology (A). ──
+  - type: web
+    name: aifos-web
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: npm install && prisma generate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /login
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aifos-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: aifos-redis
+          property: connectionString
+      - key: AUTH_TRUST_HOST
+        value: "true"
+      - key: AUTH_SECRET
+        generateValue: true      # Render generates a strong secret
+      - key: AUTH_URL
+        sync: false              # set to your Render URL, e.g. https://aifos-web.onrender.com
+      - key: ANTHROPIC_API_KEY
+        sync: false              # paste your Claude key in the dashboard
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-4-8
+      - key: AUTH_GOOGLE_ID
+        sync: false              # optional
+      - key: AUTH_GOOGLE_SECRET
+        sync: false              # optional

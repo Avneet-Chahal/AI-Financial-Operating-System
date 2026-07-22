@@ -9,13 +9,28 @@
  */
 import { NextResponse } from 'next/server';
 import type { OrchestratorSummary } from '@/types';
-import { runOrchestrator } from '@/lib/langchain-orchestrator';
+import { runOrchestrator, AiNotConfiguredError } from '@/lib/langchain-orchestrator';
 import { getCurrentUserId } from '@/lib/data';
 
 export async function GET() {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const summary: OrchestratorSummary = await runOrchestrator(userId);
-  return NextResponse.json(summary);
+  try {
+    const summary: OrchestratorSummary = await runOrchestrator(userId);
+    return NextResponse.json(summary);
+  } catch (err) {
+    if (err instanceof AiNotConfiguredError) {
+      return NextResponse.json(
+        {
+          error: 'AI_NOT_CONFIGURED',
+          message:
+            'The AI Orchestrator requires an Anthropic API key. Set ANTHROPIC_API_KEY to enable it.',
+        },
+        { status: 503 }
+      );
+    }
+    console.error('[api/orchestrator] failed:', err);
+    return NextResponse.json({ error: 'ORCHESTRATION_FAILED' }, { status: 500 });
+  }
 }

@@ -27,6 +27,19 @@ import { getUserProfile, getUserTransactions, deriveMonthlyBudget } from './data
 import { cache } from './redis';
 import { isLlmConfigured, synthesizeFinancialSummary } from './llm';
 
+/**
+ * Thrown when the orchestrator is invoked without a configured Anthropic API key.
+ * The product requires a real LLM for AI synthesis — callers should check
+ * `isLlmConfigured()` first and render a clear "AI unavailable" state instead of
+ * catching this at render time.
+ */
+export class AiNotConfiguredError extends Error {
+  constructor() {
+    super('AI_NOT_CONFIGURED');
+    this.name = 'AiNotConfiguredError';
+  }
+}
+
 // ─── Redis keys ───────────────────────────────────────────────────────────────
 
 const summaryKey = (userId: string) => `orchestrator:summary:${userId}`;
@@ -222,6 +235,9 @@ function synthesizeDeterministic(context: FinancialContext): {
 // ─── Public API ────────────────────────────────────────────────────────────────
 
 export async function runOrchestrator(userId: string): Promise<OrchestratorSummary> {
+  // AI synthesis requires a real Claude key — no silent stand-in.
+  if (!isLlmConfigured()) throw new AiNotConfiguredError();
+
   // 1. Redis summary cache (per user, short TTL).
   const cached = await cache.getJSON<OrchestratorSummary>(summaryKey(userId));
   if (cached) return cached;
@@ -229,22 +245,19 @@ export async function runOrchestrator(userId: string): Promise<OrchestratorSumma
   // 2. Tool calling + RAG context over the user's real data.
   const { context, toolsInvoked } = await assembleContext(userId);
 
-  // 3. Synthesis — Claude if configured, deterministic otherwise.
+  // 3. Synthesis — Claude. If a configured key hits a transient error we degrade
+  //    to deterministic synthesis so a live demo never hard-crashes mid-session.
   let overview: string;
   let insights: string[];
   let recommendations: ActionableRecommendation[];
 
-  if (isLlmConfigured()) {
-    try {
-      const result = await synthesizeFinancialSummary(buildContextText(context));
-      overview = result.overview;
-      insights = result.insights;
-      recommendations = result.recommendations;
-    } catch (err) {
-      console.error('[orchestrator] LLM synthesis failed, using deterministic fallback:', err);
-      ({ overview, insights, recommendations } = synthesizeDeterministic(context));
-    }
-  } else {
+  try {
+    const result = await synthesizeFinancialSummary(buildContextText(context));
+    overview = result.overview;
+    insights = result.insights;
+    recommendations = result.recommendations;
+  } catch (err) {
+    console.error('[orchestrator] LLM synthesis failed, using deterministic fallback:', err);
     ({ overview, insights, recommendations } = synthesizeDeterministic(context));
   }
 

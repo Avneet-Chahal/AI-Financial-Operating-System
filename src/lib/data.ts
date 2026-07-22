@@ -28,7 +28,10 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     email: u.email,
     monthlyIncome: u.monthlyIncome,
     currency: u.currency,
-    riskTolerance: u.riskTolerance,
+    // DB stores this as a free-form string; normalize to the app's union type.
+    riskTolerance: (['LOW', 'MEDIUM', 'HIGH'].includes(u.riskTolerance)
+      ? u.riskTolerance
+      : 'MEDIUM') as UserProfile['riskTolerance'],
     createdAt: u.createdAt.toISOString(),
   };
 }

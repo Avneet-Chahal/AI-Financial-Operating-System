@@ -11,24 +11,63 @@ import type { OrchestratorSummary } from '@/types';
 export default function AISummaryPage() {
   const [summary, setSummary] = useState<OrchestratorSummary | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const fetchSummary = useCallback(async () => {
     setIsRefreshing(true);
     try {
       const res = await fetch('/api/orchestrator', { cache: 'no-store' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setUnavailable(
+          body?.message ??
+            (res.status === 503
+              ? 'The AI Orchestrator requires an Anthropic API key.'
+              : 'The AI Orchestrator is temporarily unavailable.')
+        );
+        setSummary(null);
+        return;
+      }
       const data: OrchestratorSummary = await res.json();
+      setUnavailable(null);
       setSummary(data);
     } finally {
       setIsRefreshing(false);
+      setLoaded(true);
     }
   }, []);
 
   useEffect(() => { void fetchSummary(); }, [fetchSummary]);
 
-  if (!summary) {
+  if (!loaded) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (unavailable || !summary) {
+    return (
+      <div className="max-w-2xl mx-auto mt-10 glass-card rounded-2xl p-8 text-center animate-fade-in">
+        <div className="text-4xl mb-4">🤖</div>
+        <h1 className="text-xl font-bold text-slate-100">AI Orchestrator is offline</h1>
+        <p className="text-sm text-slate-400 mt-3 break-words">
+          {unavailable ?? 'The AI Orchestrator is temporarily unavailable.'}
+        </p>
+        <p className="text-xs text-slate-500 mt-4">
+          Set <code className="text-emerald-400 bg-slate-900/70 px-1.5 py-0.5 rounded">ANTHROPIC_API_KEY</code> and
+          re-run to generate a live multi-agent briefing from your real data.
+        </p>
+        <button
+          onClick={() => void fetchSummary()}
+          disabled={isRefreshing}
+          className="mt-6 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg font-medium inline-flex items-center gap-2 transition-colors border border-slate-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
+          {isRefreshing ? 'Retrying...' : 'Retry'}
+        </button>
       </div>
     );
   }

@@ -1,9 +1,12 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { OrchestratorSummary } from '@/types';
 import { Bot, ChevronRight, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function OrchestratorWidget({ summary }: { summary: OrchestratorSummary }) {
+  const [actionTaken, setActionTaken] = useState(false);
   return (
     <div className="glass-card gradient-border-ai rounded-2xl p-6 relative overflow-hidden animate-slide-up">
       {/* Background glow */}
@@ -32,13 +35,13 @@ export default function OrchestratorWidget({ summary }: { summary: OrchestratorS
         </Link>
       </div>
 
-      <div className="mt-6 relative z-10">
-        <div className="text-lg md:text-xl text-slate-200 leading-relaxed font-medium">
-          <span className="text-indigo-400">"</span>
-          <span className="inline-block overflow-hidden whitespace-nowrap border-r-2 border-indigo-400 animate-typing max-w-full">
+      <div className="mt-6 relative z-10 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        <div className="text-lg md:text-xl text-slate-200 leading-relaxed font-medium relative italic">
+          <span className="text-indigo-400 text-2xl absolute -left-4 -top-2">"</span>
+          <span className="relative z-10">
             {summary.plainLanguageOverview}
           </span>
-          <span className="text-indigo-400">"</span>
+          <span className="text-indigo-400 text-2xl absolute -bottom-4 ml-1">"</span>
         </div>
       </div>
 
@@ -49,7 +52,7 @@ export default function OrchestratorWidget({ summary }: { summary: OrchestratorS
             {summary.keyInsights.map((insight, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-slate-300 bg-slate-900/50 p-3 rounded-lg border border-slate-800/50">
                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
-                {insight}
+                <span className="min-w-0 break-words">{insight}</span>
               </li>
             ))}
           </ul>
@@ -71,9 +74,25 @@ export default function OrchestratorWidget({ summary }: { summary: OrchestratorS
               </p>
             </div>
             
-            <button className="w-full mt-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
-              Take Action
-              <ChevronRight className="w-4 h-4" />
+            <button 
+              onClick={() => {
+                setActionTaken(true);
+                setTimeout(() => setActionTaken(false), 3000);
+              }}
+              className={`w-full mt-4 font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-2 ${
+                actionTaken 
+                  ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' 
+                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+              }`}
+            >
+              {actionTaken ? (
+                <>Action Scheduled ✓</>
+              ) : (
+                <>
+                  Take Action
+                  <ChevronRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
         </div>

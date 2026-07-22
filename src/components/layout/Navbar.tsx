@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Menu, Search, Bell, User, LogOut } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -10,6 +10,8 @@ interface NavbarProps {
 
 export default function Navbar({ onMenuToggle }: NavbarProps) {
   const { data: session } = useSession();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const displayName = session?.user?.name ?? session?.user?.email ?? 'Account';
   const initial = displayName.charAt(0).toUpperCase();
   return (
@@ -36,11 +38,25 @@ export default function Navbar({ onMenuToggle }: NavbarProps) {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-500 transition-colors">
             <Search className="w-4 h-4" />
           </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-slate-800 rounded-full leading-5 bg-slate-900/50 text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-all focus:bg-slate-900"
-            placeholder="Ask AI-FOS anything... (e.g. 'How much did I spend on food?')"
-          />
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!searchQuery.trim()) return;
+            setIsSearching(true);
+            setTimeout(() => {
+              setIsSearching(false);
+              setSearchQuery('');
+              alert(`AI Agent analyzed: "${searchQuery}"\n(This is a demo interaction)`);
+            }, 1000);
+          }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={isSearching}
+              className="block w-full pl-10 pr-3 py-2 border border-slate-800 rounded-full leading-5 bg-slate-900/50 text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-all focus:bg-slate-900 disabled:opacity-50"
+              placeholder={isSearching ? "AI Agent analyzing..." : "Ask AI-FOS anything... (e.g. 'How much did I spend on food?')"}
+            />
+          </form>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
             <span className="text-xs text-slate-500 border border-slate-700 rounded px-1.5 py-0.5 bg-slate-800">⌘K</span>
           </div>

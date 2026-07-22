@@ -20,7 +20,7 @@ export default function CategoryBreakdown({ summary }: { summary: SpendingSummar
     .map(([cat, amount]) => ({
       category: cat as Category,
       amount,
-      percentage: Math.round((amount / summary.totalSpent) * 100)
+      percentage: Math.max(1, Math.round((amount / summary.totalSpent) * 100))
     }));
 
   return (
