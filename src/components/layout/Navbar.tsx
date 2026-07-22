@@ -1,19 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Menu, Search, Bell, User, LogOut } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Menu, Search, Bell, User, LogOut, Sparkles, X, Loader2 } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 interface NavbarProps {
   onMenuToggle: () => void;
 }
 
+interface AssistantAnswer {
+  answer: string;
+  aiPowered: boolean;
+}
+
 export default function Navbar({ onMenuToggle }: NavbarProps) {
   const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [result, setResult] = useState<AssistantAnswer | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const displayName = session?.user?.name ?? session?.user?.email ?? 'Account';
   const initial = displayName.charAt(0).toUpperCase();
+
+  // ⌘K / Ctrl+K focuses the assistant search.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setResult(null);
+        setError(null);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  async function runSearch(query: string) {
+    setIsSearching(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Something went wrong. Please try again.');
+        return;
+      }
+      setResult({ answer: data.answer, aiPowered: Boolean(data.aiPowered) });
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
   return (
     <header className="h-16 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md px-4 md:px-6 flex items-center justify-between z-20 shrink-0">
       <div className="flex items-center space-x-3">
@@ -38,28 +86,60 @@ export default function Navbar({ onMenuToggle }: NavbarProps) {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-500 transition-colors">
             <Search className="w-4 h-4" />
           </div>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (!searchQuery.trim()) return;
-            setIsSearching(true);
-            setTimeout(() => {
-              setIsSearching(false);
-              setSearchQuery('');
-              alert(`AI Agent analyzed: "${searchQuery}"\n(This is a demo interaction)`);
-            }, 1000);
-          }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = searchQuery.trim();
+              if (!q || isSearching) return;
+              void runSearch(q);
+            }}
+          >
             <input
+              ref={inputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               disabled={isSearching}
-              className="block w-full pl-10 pr-3 py-2 border border-slate-800 rounded-full leading-5 bg-slate-900/50 text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-all focus:bg-slate-900 disabled:opacity-50"
-              placeholder={isSearching ? "AI Agent analyzing..." : "Ask AI-FOS anything... (e.g. 'How much did I spend on food?')"}
+              className="block w-full pl-10 pr-16 py-2 border border-slate-800 rounded-full leading-5 bg-slate-900/50 text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-all focus:bg-slate-900 disabled:opacity-50"
+              placeholder={isSearching ? 'AI Agent analyzing…' : "Ask AI-FOS anything… (e.g. 'How much did I spend on food?')"}
             />
           </form>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <span className="text-xs text-slate-500 border border-slate-700 rounded px-1.5 py-0.5 bg-slate-800">⌘K</span>
+            {isSearching ? (
+              <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+            ) : (
+              <span className="text-xs text-slate-500 border border-slate-700 rounded px-1.5 py-0.5 bg-slate-800">⌘K</span>
+            )}
           </div>
+
+          {/* Answer / error panel */}
+          {(result || error) && (
+            <div className="absolute left-0 right-0 mt-2 z-30 glass-card rounded-xl border border-slate-700/60 bg-slate-900/95 backdrop-blur-md p-4 shadow-2xl animate-fade-in">
+              <button
+                onClick={() => {
+                  setResult(null);
+                  setError(null);
+                }}
+                className="absolute top-2.5 right-2.5 text-slate-500 hover:text-slate-300 transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              {error ? (
+                <p className="text-sm text-red-400 pr-6">{error}</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                      {result?.aiPowered ? 'AI Orchestrator' : 'Spending Agent'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-200 leading-relaxed pr-6">{result?.answer}</p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -21,7 +21,7 @@ import type {
   TaxEstimation,
 } from '@/types';
 import { analyzeBudget } from './spending-agent';
-import { analyzeInvestments, type InvestmentAnalysis } from './investment-agent';
+import { analyzeInvestmentsForUser, type InvestmentAnalysis } from './investment-agent';
 import { estimateTax, deriveTaxInput } from './tax-agent';
 import { getUserProfile, getUserTransactions, deriveMonthlyBudget } from './data';
 import { cache } from './redis';
@@ -86,7 +86,10 @@ async function assembleContext(
 
   const investment: AgentToolResult = (() => {
     try {
-      return { agentName: 'INVESTMENT', status: 'ACTIVE', data: { analysis: analyzeInvestments() } };
+      const analysis = analyzeInvestmentsForUser(transactions);
+      // No investment transactions → the agent is idle rather than reporting figures.
+      if (!analysis) return { agentName: 'INVESTMENT', status: 'IDLE', data: {} };
+      return { agentName: 'INVESTMENT', status: 'ACTIVE', data: { analysis } };
     } catch {
       return { agentName: 'INVESTMENT', status: 'ERROR', data: {} };
     }
@@ -94,6 +97,8 @@ async function assembleContext(
 
   const tax: AgentToolResult = (() => {
     try {
+      // Tax estimation needs an income; without one the agent stays idle.
+      if (!profile || profile.monthlyIncome <= 0) return { agentName: 'TAX', status: 'IDLE', data: {} };
       const estimation = estimateTax(deriveTaxInput(profile, transactions));
       return { agentName: 'TAX', status: 'ACTIVE', data: { estimation } };
     } catch {

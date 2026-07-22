@@ -4,7 +4,7 @@ import { estimateTax, deriveTaxInput } from '@/lib/tax-agent';
 import RegimeComparison from '@/components/taxes/RegimeComparison';
 import DeductionTracker from '@/components/taxes/DeductionTracker';
 import TaxSummaryCard from '@/components/taxes/TaxSummaryCard';
-import { FileText } from 'lucide-react';
+import { FileText, Wallet } from 'lucide-react';
 import { getCurrentUserId, getUserProfile, getUserTransactions } from '@/lib/data';
 
 /**
@@ -19,6 +19,39 @@ export default async function TaxesPage() {
     getUserProfile(userId),
     getUserTransactions(userId),
   ]);
+
+  // Without an income we can't estimate tax — show a clear prompt instead of demo numbers.
+  if (!profile || profile.monthlyIncome <= 0) {
+    return (
+      <div className="space-y-6 pb-20">
+        <div className="animate-fade-in">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-100 flex items-center gap-2">
+            <FileText className="w-7 h-7 text-amber-400" />
+            Tax Optimization Agent
+            <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded border border-blue-500/20 font-medium">
+              SHOULD
+            </span>
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Tax estimates, deduction planning, and regime comparison for FY 2025–26.
+          </p>
+        </div>
+
+        <div className="glass-card rounded-2xl p-10 text-center animate-fade-in">
+          <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <Wallet className="w-6 h-6 text-amber-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-100">Add your income to estimate tax</h2>
+          <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+            The Tax Agent needs your annual income to compute liability, compare the Old vs New
+            regime, and track deductions. Set your monthly income when signing up, then upload a bank
+            statement so we can infer your rent (HRA) and 80C investments automatically.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const estimation = estimateTax(deriveTaxInput(profile, transactions));
 
   return (

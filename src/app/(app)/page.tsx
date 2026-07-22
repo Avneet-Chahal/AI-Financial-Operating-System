@@ -18,7 +18,6 @@ import {
   getUserTransactions,
   deriveMonthlyBudget,
 } from '@/lib/data';
-import { mockMonthlyTrend } from '@/lib/mockData';
 import type { UserProfile } from '@/types';
 
 /**
@@ -134,7 +133,9 @@ export default async function DashboardPage() {
 
           {/* Row 5: Monthly Trend */}
           <div className="w-full">
-            <MonthlyTrend data={mockMonthlyTrend} />
+            <MonthlyTrend
+              transactions={transactions.map((t) => ({ date: t.date, amount: t.amount }))}
+            />
           </div>
         </>
       )}

@@ -90,6 +90,45 @@ export async function synthesizeFinancialSummary(contextText: string): Promise<S
   return { overview: result.overview, insights: result.insights, recommendations };
 }
 
+// ─── Conversational assistant (search bar) ─────────────────────────────────────
+
+/**
+ * Answer a free-text financial question grounded ONLY in the user's assembled
+ * context. Used by the search bar / AI assistant. Returns a short plain-language
+ * answer; callers fall back to a deterministic answer when no key is configured.
+ */
+export async function answerFinancialQuestion(
+  question: string,
+  contextText: string
+): Promise<string> {
+  const model = getChatModel();
+
+  const result = await model.invoke([
+    {
+      role: 'system',
+      content: `You are the AI-FOS financial assistant. Answer the user's question using ONLY the
+financial context provided (their real transactions/profile). Currency is Indian Rupees (₹).
+Rules:
+- Be concise: 1-3 sentences. Use concrete numbers from the context.
+- Never invent figures not present in the context. If the context doesn't cover the question,
+  say what data is available and suggest uploading a bank statement.
+- No disclaimers or meta-commentary about being an AI.`,
+    },
+    {
+      role: 'user',
+      content: `Financial context:\n\n${contextText}\n\nQuestion: ${question}`,
+    },
+  ]);
+
+  const content = result.content;
+  if (typeof content === 'string') return content.trim();
+  // content can be an array of parts; concatenate any text parts.
+  return content
+    .map((part) => (typeof part === 'string' ? part : 'text' in part ? part.text : ''))
+    .join('')
+    .trim();
+}
+
 // ─── PDF statement extraction ─────────────────────────────────────────────────
 
 const extractionSchema = z.object({

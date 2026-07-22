@@ -40,12 +40,17 @@ export interface TaxInput {
   sec80CCD_nps: number;      // NPS additional
 }
 
-const DEFAULT_TAX_INPUT: TaxInput = {
-  annualGrossIncome: 85000 * 12,
-  hraReceived: 20000 * 12,
-  rentPaid: 25000 * 12,
-  sec80C_invested: 110000,
-  sec80D_premium: 18000,
+/**
+ * A zero input — used when the user has not provided an income yet. It produces
+ * a zero tax estimate rather than fabricating demo figures, so the Tax page can
+ * render an explicit "set your income" empty state instead.
+ */
+const EMPTY_TAX_INPUT: TaxInput = {
+  annualGrossIncome: 0,
+  hraReceived: 0,
+  rentPaid: 0,
+  sec80C_invested: 0,
+  sec80D_premium: 0,
   sec80CCD_nps: 0,
 };
 
@@ -62,7 +67,7 @@ export function deriveTaxInput(
   profile: UserProfile | null,
   transactions: Transaction[]
 ): TaxInput {
-  if (!profile || profile.monthlyIncome <= 0) return DEFAULT_TAX_INPUT;
+  if (!profile || profile.monthlyIncome <= 0) return EMPTY_TAX_INPUT;
 
   const annualGrossIncome = profile.monthlyIncome * 12;
 
@@ -134,7 +139,7 @@ function computeDeductions(input: TaxInput): TaxDeduction[] {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export function estimateTax(input: TaxInput = DEFAULT_TAX_INPUT): TaxEstimation {
+export function estimateTax(input: TaxInput = EMPTY_TAX_INPUT): TaxEstimation {
   const deductions = computeDeductions(input);
 
   // Old regime: apply all deductions

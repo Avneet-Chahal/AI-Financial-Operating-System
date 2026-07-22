@@ -9,7 +9,7 @@
  * Consumed by the LangChain Orchestration Layer.
  */
 
-import type { PortfolioSummary, AssetAllocation } from '@/types';
+import type { PortfolioSummary, AssetAllocation, Transaction } from '@/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,17 +38,60 @@ export interface TaxSavingOpportunity {
   estimatedTaxSaving: number;
 }
 
-// ─── Seed Portfolio Data ─────────────────────────────────────────────────────
+// ─── Holdings derived from the user's real transactions ──────────────────────
 
-function getSeedHoldings(): Holding[] {
-  return [
-    { name: 'Axis Bluechip Fund (ELSS)', type: 'EQUITY', investedAmount: 60000, currentValue: 71400 },
-    { name: 'Mirae Asset Large Cap Fund', type: 'EQUITY', investedAmount: 48000, currentValue: 55200 },
-    { name: 'ICICI Pru Short Term Debt Fund', type: 'DEBT', investedAmount: 30000, currentValue: 32100 },
-    { name: 'Sovereign Gold Bond 2024', type: 'GOLD', investedAmount: 15000, currentValue: 17250 },
-    { name: 'PPF Account', type: 'DEBT', investedAmount: 50000, currentValue: 53500 },
-    { name: 'Savings Account Balance', type: 'CASH', investedAmount: 20000, currentValue: 20000 },
-  ];
+/**
+ * Illustrative appreciation applied to invested amounts to estimate current
+ * market value. Real brokerage/NAV sync is a future (COULD-tier) integration;
+ * until then these deterministic, per-asset-class factors give a representative
+ * portfolio view. The UI labels these values as estimated.
+ */
+const GROWTH_FACTOR: Record<Holding['type'], number> = {
+  EQUITY: 1.14,
+  DEBT: 1.07,
+  GOLD: 1.15,
+  CASH: 1.0,
+};
+
+/** Classify an investment instrument into an asset class from its name/merchant. */
+function classifyHolding(text: string): Holding['type'] {
+  const t = text.toLowerCase();
+  if (/gold|sgb|sovereign/.test(t)) return 'GOLD';
+  if (/ppf|nps|debt|bond|\bfd\b|fixed deposit|liquid|gilt|treasury/.test(t)) return 'DEBT';
+  if (/savings|balance|wallet/.test(t)) return 'CASH';
+  // ELSS, bluechip, index, large/mid/small cap, mutual fund, SIP, stocks → equity.
+  return 'EQUITY';
+}
+
+/**
+ * Build holdings from the user's INVESTMENTS-category transactions.
+ * Each distinct merchant/instrument becomes one holding; the invested amount is
+ * the sum of that instrument's contributions, and current value is estimated via
+ * a deterministic per-asset-class appreciation factor.
+ */
+export function deriveHoldingsFromTransactions(transactions: Transaction[]): Holding[] {
+  const investmentTxns = transactions.filter((t) => t.category === 'INVESTMENTS');
+  if (investmentTxns.length === 0) return [];
+
+  const byInstrument = new Map<string, { name: string; type: Holding['type']; invested: number }>();
+  for (const tx of investmentTxns) {
+    const name = (tx.merchant || tx.description || 'Investment').trim();
+    const key = name.toLowerCase();
+    const type = classifyHolding(`${tx.description} ${tx.merchant}`);
+    const existing = byInstrument.get(key);
+    if (existing) {
+      existing.invested += tx.amount;
+    } else {
+      byInstrument.set(key, { name, type, invested: tx.amount });
+    }
+  }
+
+  return Array.from(byInstrument.values()).map(({ name, type, invested }) => ({
+    name,
+    type,
+    investedAmount: invested,
+    currentValue: Math.round(invested * GROWTH_FACTOR[type]),
+  }));
 }
 
 // ─── Analysis Functions ──────────────────────────────────────────────────────
@@ -76,15 +119,13 @@ function computeRiskScore(allocation: AssetAllocation): { score: number; label: 
 }
 
 function computeTaxSavingOpportunities(holdings: Holding[]): TaxSavingOpportunity[] {
-  const elssInvested = holdings
-    .filter((h) => h.name.toLowerCase().includes('elss'))
-    .reduce((s, h) => s + h.investedAmount, 0);
-  const ppfInvested = holdings
-    .filter((h) => h.name.toLowerCase().includes('ppf'))
-    .reduce((s, h) => s + h.investedAmount, 0);
-
+  // Treat equity (ELSS-style) and debt (PPF/NSC-style) contributions as
+  // 80C-eligible; gold and cash balances are not. Capped at the ₹1.5L limit.
   const sec80C_limit = 150000;
-  const sec80C_utilized = elssInvested + ppfInvested;
+  const sec80C_eligible = holdings
+    .filter((h) => h.type === 'EQUITY' || h.type === 'DEBT')
+    .reduce((s, h) => s + h.investedAmount, 0);
+  const sec80C_utilized = Math.min(sec80C_limit, sec80C_eligible);
   const sec80C_remaining = Math.max(0, sec80C_limit - sec80C_utilized);
 
   return [
@@ -110,11 +151,10 @@ function computeTaxSavingOpportunities(holdings: Holding[]): TaxSavingOpportunit
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Analyze a portfolio. Holdings are optional: brokerage/holdings sync is a future
- * (COULD-tier) integration, so we default to a representative seed portfolio. Once
- * a holdings source exists, callers pass real holdings and everything downstream works.
+ * Analyze a set of holdings into a full InvestmentAnalysis.
+ * Callers pass holdings derived from the user's real investment transactions.
  */
-export function analyzeInvestments(holdings: Holding[] = getSeedHoldings()): InvestmentAnalysis {
+export function analyzeInvestments(holdings: Holding[]): InvestmentAnalysis {
 
   const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0);
   const totalInvested = holdings.reduce((s, h) => s + h.investedAmount, 0);
@@ -133,4 +173,15 @@ export function analyzeInvestments(holdings: Holding[] = getSeedHoldings()): Inv
   };
 
   return { portfolio, holdings, riskScore, riskLabel, taxSavingHeadroom, annualizedReturn };
+}
+
+/**
+ * Analyze the signed-in user's portfolio from their real transactions.
+ * Returns null when the user has no investment transactions yet, so callers can
+ * render an empty state instead of fabricated demo numbers.
+ */
+export function analyzeInvestmentsForUser(transactions: Transaction[]): InvestmentAnalysis | null {
+  const holdings = deriveHoldingsFromTransactions(transactions);
+  if (holdings.length === 0) return null;
+  return analyzeInvestments(holdings);
 }
